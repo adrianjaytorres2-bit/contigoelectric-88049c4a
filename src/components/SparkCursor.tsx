@@ -94,11 +94,14 @@ export const SparkCursor = () => {
     };
   }, []);
 
-  // Clean up old trail points
+  // Dissolve trail over time when not moving
   useEffect(() => {
     const interval = setInterval(() => {
-      setTrail(prev => prev.slice(-12));
-    }, 50);
+      setTrail(prev => {
+        if (prev.length === 0) return prev;
+        return prev.slice(1); // Remove oldest point gradually
+      });
+    }, 80);
     return () => clearInterval(interval);
   }, []);
 

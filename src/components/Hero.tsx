@@ -1,0 +1,146 @@
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ChevronRight, ChevronDown, Shield, Clock, Award, DollarSign } from "lucide-react";
+
+const heroImages = [
+  "https://images.unsplash.com/photo-1621905251918-48416bd8575a?w=1920&q=80",
+  "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1920&q=80",
+  "https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=1920&q=80",
+  "https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?w=1920&q=80",
+];
+
+const features = [
+  { icon: Shield, title: "TRUSTED EXPERTISE", desc: "Decades of combined commercial electrical experience" },
+  { icon: Clock, title: "RELIABLE SERVICE", desc: "On time, on budget, and aligned with your goals" },
+  { icon: Award, title: "SAFETY-DRIVEN", desc: "Fully compliant with all state, federal, and jobsite safety standards" },
+  { icon: DollarSign, title: "COMPETITIVE PRICING", desc: "High-quality work with transparent, fair pricing" },
+];
+
+export function Hero() {
+  const [currentImage, setCurrentImage] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentImage((prev) => (prev + 1) % heroImages.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const scrollToContact = () => {
+    document.querySelector("#contact")?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const scrollToServices = () => {
+    document.querySelector("#services")?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  return (
+    <section className="relative min-h-screen flex flex-col">
+      {/* Background Images */}
+      <div className="absolute inset-0">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentImage}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 1 }}
+            className="absolute inset-0"
+          >
+            <img
+              src={heroImages[currentImage]}
+              alt="Electrical work"
+              className="w-full h-full object-cover"
+            />
+          </motion.div>
+        </AnimatePresence>
+        <div className="absolute inset-0 hero-overlay" />
+      </div>
+
+      {/* Content */}
+      <div className="relative z-10 flex-1 flex flex-col justify-center items-center text-center px-4 pt-20">
+        <motion.h1
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.2 }}
+          className="font-display text-6xl md:text-8xl lg:text-9xl tracking-wider text-foreground"
+        >
+          POWERING
+        </motion.h1>
+        <motion.h2
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.4 }}
+          className="font-display text-5xl md:text-7xl lg:text-8xl tracking-wider text-gradient-cyan"
+        >
+          YOUR SUCCESS
+        </motion.h2>
+        <motion.p
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.6 }}
+          className="mt-6 text-lg md:text-xl text-muted-foreground max-w-2xl"
+        >
+          A Full-Service Commercial Electrical Contractor with Comprehensive Projects Across Central Florida.
+        </motion.p>
+        <motion.button
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.8 }}
+          onClick={scrollToContact}
+          className="mt-8 flex items-center gap-2 text-primary hover:gap-4 transition-all duration-300 group"
+        >
+          <span className="text-sm tracking-widest font-medium">REQUEST A PROPOSAL</span>
+          <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+        </motion.button>
+
+        {/* Image Indicators */}
+        <div className="flex gap-2 mt-12">
+          {heroImages.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => setCurrentImage(index)}
+              className={`h-1 transition-all duration-300 ${
+                index === currentImage ? "w-8 bg-primary" : "w-4 bg-foreground/30"
+              }`}
+            />
+          ))}
+        </div>
+
+        {/* Scroll Indicator */}
+        <motion.button
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.8, delay: 1.2 }}
+          onClick={scrollToServices}
+          className="absolute bottom-8 animate-bounce"
+        >
+          <ChevronDown className="w-8 h-8 text-primary" />
+        </motion.button>
+      </div>
+
+      {/* Feature Cards */}
+      <div className="relative z-10 bg-background/90 backdrop-blur-sm">
+        <div className="container mx-auto px-4 py-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {features.map((feature, index) => (
+              <motion.div
+                key={feature.title}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 1 + index * 0.1 }}
+                className="flex items-start gap-4 p-4"
+              >
+                <feature.icon className="w-8 h-8 text-primary flex-shrink-0" />
+                <div>
+                  <h3 className="font-display text-lg text-foreground">{feature.title}</h3>
+                  <p className="text-sm text-muted-foreground">{feature.desc}</p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}

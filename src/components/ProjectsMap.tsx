@@ -113,7 +113,7 @@ export function ProjectsMap() {
           transition={{ duration: 0.6, delay: 0.2 }}
           className="relative"
         >
-          <div className="relative h-[400px] md:h-[500px] lg:h-[600px] rounded-lg overflow-hidden border border-border shadow-xl">
+          <div className="relative h-[300px] md:h-[380px] lg:h-[450px] rounded-lg overflow-hidden border border-border shadow-xl">
             <MapContainer
               center={[28.54, -81.38]}
               zoom={9}

@@ -1,39 +1,35 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-interface Spark {
+interface TrailPoint {
   id: number;
   x: number;
   y: number;
+  offsetX: number;
+  offsetY: number;
 }
 
 export const SparkCursor = () => {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-  const [sparks, setSparks] = useState<Spark[]>([]);
+  const [trail, setTrail] = useState<TrailPoint[]>([]);
   const [isVisible, setIsVisible] = useState(false);
+  const idRef = useRef(0);
 
   useEffect(() => {
-    let sparkId = 0;
-    
     const handleMouseMove = (e: MouseEvent) => {
       setMousePos({ x: e.clientX, y: e.clientY });
       setIsVisible(true);
       
-      // Create sparks occasionally
-      if (Math.random() > 0.7) {
-        const newSpark: Spark = {
-          id: sparkId++,
-          x: e.clientX + (Math.random() - 0.5) * 20,
-          y: e.clientY + (Math.random() - 0.5) * 20,
-        };
-        
-        setSparks(prev => [...prev.slice(-8), newSpark]);
-        
-        // Remove spark after animation
-        setTimeout(() => {
-          setSparks(prev => prev.filter(s => s.id !== newSpark.id));
-        }, 400);
-      }
+      // Create jagged lightning trail points
+      const newPoint: TrailPoint = {
+        id: idRef.current++,
+        x: e.clientX,
+        y: e.clientY,
+        offsetX: (Math.random() - 0.5) * 12,
+        offsetY: (Math.random() - 0.5) * 12,
+      };
+      
+      setTrail(prev => [...prev.slice(-15), newPoint]);
     };
 
     const handleMouseLeave = () => setIsVisible(false);
@@ -50,6 +46,14 @@ export const SparkCursor = () => {
     };
   }, []);
 
+  // Clean up old trail points
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTrail(prev => prev.slice(-12));
+    }, 50);
+    return () => clearInterval(interval);
+  }, []);
+
   // Don't render on touch devices
   if (typeof window !== "undefined" && "ontouchstart" in window) {
     return null;
@@ -57,9 +61,46 @@ export const SparkCursor = () => {
 
   return (
     <div className="pointer-events-none fixed inset-0 z-[9999] hidden md:block">
-      {/* Main spark glow */}
+      {/* Lightning trail SVG */}
+      {trail.length > 1 && isVisible && (
+        <svg className="absolute inset-0 w-full h-full overflow-visible">
+          <defs>
+            <filter id="glow">
+              <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+              <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+          </defs>
+          {trail.slice(0, -1).map((point, index) => {
+            const nextPoint = trail[index + 1];
+            if (!nextPoint) return null;
+            
+            const opacity = (index + 1) / trail.length;
+            const strokeWidth = 1 + (index / trail.length) * 2;
+            
+            return (
+              <line
+                key={point.id}
+                x1={point.x + point.offsetX}
+                y1={point.y + point.offsetY}
+                x2={nextPoint.x + nextPoint.offsetX}
+                y2={nextPoint.y + nextPoint.offsetY}
+                stroke="hsl(var(--electric-cyan))"
+                strokeWidth={strokeWidth}
+                opacity={opacity * 0.8}
+                filter="url(#glow)"
+                strokeLinecap="round"
+              />
+            );
+          })}
+        </svg>
+      )}
+
+      {/* Main spark point */}
       <motion.div
-        className="absolute w-4 h-4 -translate-x-1/2 -translate-y-1/2"
+        className="absolute -translate-x-1/2 -translate-y-1/2"
         animate={{
           x: mousePos.x,
           y: mousePos.y,
@@ -67,36 +108,42 @@ export const SparkCursor = () => {
         }}
         transition={{
           type: "spring",
-          stiffness: 500,
-          damping: 28,
-          mass: 0.5,
+          stiffness: 800,
+          damping: 35,
+          mass: 0.3,
         }}
       >
-        <div className="absolute inset-0 rounded-full bg-electric-cyan blur-sm animate-pulse" />
-        <div className="absolute inset-1 rounded-full bg-white" />
+        {/* Outer glow */}
+        <div 
+          className="absolute w-6 h-6 -translate-x-1/2 -translate-y-1/2 rounded-full bg-electric-cyan/30 blur-md"
+          style={{ animation: "pulse 0.5s ease-in-out infinite" }}
+        />
+        {/* Inner spark */}
+        <div className="absolute w-3 h-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-electric-cyan blur-[2px]" />
+        <div className="absolute w-1.5 h-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white" />
       </motion.div>
 
-      {/* Trailing sparks */}
+      {/* Random micro sparks */}
       <AnimatePresence>
-        {sparks.map((spark) => (
+        {isVisible && trail.slice(-3).map((point, i) => (
           <motion.div
-            key={spark.id}
-            className="absolute w-1 h-1 rounded-full bg-electric-cyan"
+            key={`spark-${point.id}`}
+            className="absolute w-0.5 h-0.5 rounded-full bg-white"
             initial={{ 
-              x: spark.x, 
-              y: spark.y, 
-              scale: 1, 
-              opacity: 1 
+              x: point.x + (Math.random() - 0.5) * 20, 
+              y: point.y + (Math.random() - 0.5) * 20,
+              scale: 1,
+              opacity: 0.8,
             }}
             animate={{ 
-              y: spark.y + 30,
+              x: point.x + (Math.random() - 0.5) * 40,
+              y: point.y + (Math.random() - 0.5) * 40,
               scale: 0,
               opacity: 0,
             }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.4, ease: "easeOut" }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
             style={{
-              boxShadow: "0 0 6px hsl(var(--electric-cyan))",
+              boxShadow: "0 0 4px hsl(var(--electric-cyan))",
             }}
           />
         ))}

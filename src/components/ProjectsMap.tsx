@@ -4,18 +4,18 @@ import { X, MapPin, Calendar, DollarSign, Building2 } from "lucide-react";
 import { projects, type Project } from "@/data/projects";
 import { Card, CardContent } from "@/components/ui/card";
 
-// Florida-focused project locations (approximate positions on our custom map)
+// Project positions on Florida map (percentage based)
 const projectPositions = [
-  { x: 72, y: 58 },   // Project 1 - Oviedo
-  { x: 68, y: 62 },   // Project 2 - Orlando
-  { x: 65, y: 66 },   // Project 3 - Dr. Phillips
-  { x: 70, y: 56 },   // Project 4 - Winter Springs
-  { x: 69, y: 58 },   // Project 5 - Casselberry
-  { x: 64, y: 64 },   // Project 6 - Sand Lake
-  { x: 63, y: 68 },   // Project 7 - International Drive
-  { x: 71, y: 63 },   // Project 8 - Airport Area
-  { x: 62, y: 60 },   // Project 9 - Windermere
-  { x: 67, y: 55 },   // Project 10 - Maitland
+  { x: 62, y: 32, city: "Oviedo" },
+  { x: 48, y: 45, city: "Orlando" },
+  { x: 38, y: 58, city: "Dr. Phillips" },
+  { x: 58, y: 28, city: "Winter Springs" },
+  { x: 55, y: 35, city: "Casselberry" },
+  { x: 35, y: 52, city: "Sand Lake" },
+  { x: 32, y: 62, city: "I-Drive" },
+  { x: 52, y: 48, city: "Airport" },
+  { x: 28, y: 42, city: "Windermere" },
+  { x: 50, y: 25, city: "Maitland" },
 ];
 
 export function ProjectsMap() {
@@ -48,162 +48,202 @@ export function ProjectsMap() {
           transition={{ duration: 0.6, delay: 0.2 }}
           className="relative"
         >
-          <div className="relative h-[500px] md:h-[600px] rounded-lg overflow-hidden border border-border bg-card">
-            {/* Custom SVG World Map - Minimalist Style */}
-            <svg
-              viewBox="0 0 100 60"
-              className="w-full h-full"
-              preserveAspectRatio="xMidYMid slice"
-            >
-              {/* Background */}
-              <rect width="100" height="60" fill="hsl(var(--card))" />
+          <div className="relative h-[500px] md:h-[600px] rounded-lg overflow-hidden border border-border">
+            {/* Map Container */}
+            <div className="absolute inset-0 bg-[#1a2332]">
+              {/* Water/Ocean base */}
+              <div className="absolute inset-0 bg-[#1e3a5f]" />
               
-              {/* Grid lines for style */}
-              {[...Array(10)].map((_, i) => (
-                <line
-                  key={`h-${i}`}
-                  x1="0"
-                  y1={i * 6}
-                  x2="100"
-                  y2={i * 6}
-                  stroke="hsl(var(--border))"
-                  strokeWidth="0.1"
-                  opacity="0.3"
+              {/* Florida Land Mass SVG */}
+              <svg
+                viewBox="0 0 100 100"
+                className="absolute inset-0 w-full h-full"
+                preserveAspectRatio="xMidYMid slice"
+              >
+                {/* Land - Florida shape */}
+                <defs>
+                  <linearGradient id="landGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#2d3b4a" />
+                    <stop offset="100%" stopColor="#1f2937" />
+                  </linearGradient>
+                  <filter id="glow">
+                    <feGaussianBlur stdDeviation="0.5" result="coloredBlur"/>
+                    <feMerge>
+                      <feMergeNode in="coloredBlur"/>
+                      <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                  </filter>
+                </defs>
+
+                {/* Central Florida land area */}
+                <path
+                  d="M 0 0 L 100 0 L 100 100 L 0 100 Z"
+                  fill="url(#landGradient)"
                 />
-              ))}
-              {[...Array(15)].map((_, i) => (
-                <line
-                  key={`v-${i}`}
-                  x1={i * 7}
-                  y1="0"
-                  x2={i * 7}
-                  y2="60"
-                  stroke="hsl(var(--border))"
-                  strokeWidth="0.1"
-                  opacity="0.3"
+
+                {/* Major Lakes */}
+                <ellipse cx="20" cy="45" rx="8" ry="6" fill="#1e3a5f" opacity="0.8" />
+                <ellipse cx="45" cy="38" rx="5" ry="4" fill="#1e3a5f" opacity="0.8" />
+                <ellipse cx="70" cy="50" rx="6" ry="5" fill="#1e3a5f" opacity="0.8" />
+                <ellipse cx="35" cy="65" rx="4" ry="3" fill="#1e3a5f" opacity="0.8" />
+                <ellipse cx="60" cy="25" rx="3" ry="2.5" fill="#1e3a5f" opacity="0.8" />
+                <ellipse cx="25" cy="30" rx="4" ry="3" fill="#1e3a5f" opacity="0.8" />
+                <ellipse cx="80" cy="35" rx="5" ry="4" fill="#1e3a5f" opacity="0.8" />
+
+                {/* Major Highways */}
+                {/* I-4 */}
+                <path
+                  d="M 5 70 Q 30 50 50 45 Q 70 40 95 30"
+                  fill="none"
+                  stroke="#4a5568"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
                 />
-              ))}
+                {/* 408 */}
+                <path
+                  d="M 25 45 L 75 45"
+                  fill="none"
+                  stroke="#4a5568"
+                  strokeWidth="1"
+                  strokeLinecap="round"
+                />
+                {/* 417 */}
+                <path
+                  d="M 55 15 Q 60 40 65 70 Q 68 85 70 95"
+                  fill="none"
+                  stroke="#4a5568"
+                  strokeWidth="1"
+                  strokeLinecap="round"
+                />
+                {/* 429 */}
+                <path
+                  d="M 20 20 Q 22 45 25 70"
+                  fill="none"
+                  stroke="#4a5568"
+                  strokeWidth="1"
+                  strokeLinecap="round"
+                />
+                {/* US 192 */}
+                <path
+                  d="M 5 75 L 95 75"
+                  fill="none"
+                  stroke="#3d4852"
+                  strokeWidth="0.8"
+                  strokeLinecap="round"
+                />
+                {/* US 17-92 */}
+                <path
+                  d="M 50 5 L 50 95"
+                  fill="none"
+                  stroke="#3d4852"
+                  strokeWidth="0.8"
+                  strokeLinecap="round"
+                />
 
-              {/* Simplified World Continents - Very minimal outlines */}
-              {/* North America */}
-              <path
-                d="M 10 12 Q 15 8 25 10 Q 30 12 32 18 Q 28 22 25 28 Q 22 32 18 35 Q 14 32 12 28 Q 8 22 10 12"
-                fill="none"
-                stroke="hsl(var(--muted-foreground))"
-                strokeWidth="0.3"
-                opacity="0.4"
-              />
-              
-              {/* South America */}
-              <path
-                d="M 22 36 Q 25 38 26 42 Q 27 48 24 52 Q 22 54 20 52 Q 18 48 19 42 Q 20 38 22 36"
-                fill="none"
-                stroke="hsl(var(--muted-foreground))"
-                strokeWidth="0.3"
-                opacity="0.4"
-              />
-              
-              {/* Europe */}
-              <path
-                d="M 45 14 Q 50 12 55 14 Q 52 18 48 20 Q 44 18 45 14"
-                fill="none"
-                stroke="hsl(var(--muted-foreground))"
-                strokeWidth="0.3"
-                opacity="0.4"
-              />
-              
-              {/* Africa */}
-              <path
-                d="M 48 24 Q 54 22 58 26 Q 60 32 58 40 Q 54 44 50 42 Q 46 38 46 32 Q 46 26 48 24"
-                fill="none"
-                stroke="hsl(var(--muted-foreground))"
-                strokeWidth="0.3"
-                opacity="0.4"
-              />
-              
-              {/* Asia */}
-              <path
-                d="M 58 10 Q 70 8 82 12 Q 88 16 90 22 Q 86 28 80 30 Q 72 32 65 28 Q 58 24 56 18 Q 56 12 58 10"
-                fill="none"
-                stroke="hsl(var(--muted-foreground))"
-                strokeWidth="0.3"
-                opacity="0.4"
-              />
-              
-              {/* Australia */}
-              <path
-                d="M 78 42 Q 84 40 88 44 Q 90 48 86 52 Q 82 54 78 50 Q 76 46 78 42"
-                fill="none"
-                stroke="hsl(var(--muted-foreground))"
-                strokeWidth="0.3"
-                opacity="0.4"
-              />
+                {/* Secondary roads grid */}
+                {[20, 35, 50, 65, 80].map((y) => (
+                  <path
+                    key={`h-${y}`}
+                    d={`M 10 ${y} L 90 ${y}`}
+                    fill="none"
+                    stroke="#2d3748"
+                    strokeWidth="0.3"
+                    opacity="0.5"
+                  />
+                ))}
+                {[20, 35, 50, 65, 80].map((x) => (
+                  <path
+                    key={`v-${x}`}
+                    d={`M ${x} 10 L ${x} 90`}
+                    fill="none"
+                    stroke="#2d3748"
+                    strokeWidth="0.3"
+                    opacity="0.5"
+                  />
+                ))}
 
-              {/* Florida Highlight - Where our projects are */}
-              <path
-                d="M 24 26 Q 26 25 28 27 Q 29 30 27 33 Q 25 32 24 29 Q 23 27 24 26"
-                fill="hsl(var(--primary))"
-                opacity="0.15"
-                stroke="hsl(var(--primary))"
-                strokeWidth="0.2"
-              />
+                {/* City labels */}
+                <text x="48" y="52" fontSize="2.5" fill="#64748b" fontFamily="system-ui" fontWeight="500">ORLANDO</text>
+                <text x="28" y="43" fontSize="1.8" fill="#4a5568" fontFamily="system-ui">Windermere</text>
+                <text x="58" y="30" fontSize="1.8" fill="#4a5568" fontFamily="system-ui">Winter Park</text>
+                <text x="32" y="68" fontSize="1.8" fill="#4a5568" fontFamily="system-ui">I-Drive</text>
+                <text x="70" y="55" fontSize="1.8" fill="#4a5568" fontFamily="system-ui">UCF</text>
+                <text x="15" y="50" fontSize="1.8" fill="#4a5568" fontFamily="system-ui">Disney</text>
 
-              {/* Project Markers - Orange circles with numbers */}
-              {projects.map((project, index) => {
-                const pos = projectPositions[index];
-                // Scale positions to be within Florida area
-                const scaledX = 20 + (pos.x - 60) * 0.8;
-                const scaledY = 22 + (pos.y - 55) * 0.8;
-                
-                return (
-                  <g key={project.id}>
-                    {/* Glow effect for hovered/selected */}
-                    {(hoveredProject === index || selectedProject?.id === project.id) && (
+                {/* Project Markers */}
+                {projects.map((project, index) => {
+                  const pos = projectPositions[index];
+                  const isSelected = selectedProject?.id === project.id;
+                  const isHovered = hoveredProject === index;
+                  
+                  return (
+                    <g key={project.id} filter={isHovered || isSelected ? "url(#glow)" : undefined}>
+                      {/* Pulse animation ring */}
+                      {(isHovered || isSelected) && (
+                        <circle
+                          cx={pos.x}
+                          cy={pos.y}
+                          r="4"
+                          fill="none"
+                          stroke="#f97316"
+                          strokeWidth="0.5"
+                          opacity="0.5"
+                        >
+                          <animate
+                            attributeName="r"
+                            from="2.5"
+                            to="5"
+                            dur="1s"
+                            repeatCount="indefinite"
+                          />
+                          <animate
+                            attributeName="opacity"
+                            from="0.6"
+                            to="0"
+                            dur="1s"
+                            repeatCount="indefinite"
+                          />
+                        </circle>
+                      )}
+                      
+                      {/* Main marker circle */}
                       <circle
-                        cx={scaledX}
-                        cy={scaledY}
-                        r="2.5"
-                        fill="hsl(25, 95%, 53%)"
-                        opacity="0.3"
+                        cx={pos.x}
+                        cy={pos.y}
+                        r={isHovered || isSelected ? "3" : "2.5"}
+                        fill="#f97316"
+                        stroke="#fff"
+                        strokeWidth="0.4"
+                        className="cursor-pointer transition-all duration-200"
+                        style={{
+                          filter: isHovered || isSelected ? "drop-shadow(0 0 4px #f97316)" : "drop-shadow(0 1px 2px rgba(0,0,0,0.5))"
+                        }}
+                        onMouseEnter={() => setHoveredProject(index)}
+                        onMouseLeave={() => setHoveredProject(null)}
+                        onClick={() => setSelectedProject(project)}
                       />
-                    )}
-                    
-                    {/* Main circle */}
-                    <circle
-                      cx={scaledX}
-                      cy={scaledY}
-                      r="1.5"
-                      fill="hsl(25, 95%, 53%)"
-                      stroke="hsl(var(--background))"
-                      strokeWidth="0.2"
-                      className="cursor-pointer transition-all duration-200"
-                      style={{
-                        filter: hoveredProject === index || selectedProject?.id === project.id 
-                          ? "drop-shadow(0 0 3px hsl(25, 95%, 53%))" 
-                          : "none"
-                      }}
-                      onMouseEnter={() => setHoveredProject(index)}
-                      onMouseLeave={() => setHoveredProject(null)}
-                      onClick={() => setSelectedProject(project)}
-                    />
-                    
-                    {/* Number */}
-                    <text
-                      x={scaledX}
-                      y={scaledY + 0.5}
-                      textAnchor="middle"
-                      fontSize="1.2"
-                      fontWeight="bold"
-                      fill="hsl(var(--background))"
-                      className="pointer-events-none select-none"
-                      style={{ fontFamily: "system-ui" }}
-                    >
-                      {index + 1}
-                    </text>
-                  </g>
-                );
-              })}
-            </svg>
+                      
+                      {/* Number label */}
+                      <text
+                        x={pos.x}
+                        y={pos.y + 0.8}
+                        textAnchor="middle"
+                        fontSize="2"
+                        fontWeight="bold"
+                        fill="#fff"
+                        className="pointer-events-none select-none"
+                        style={{ fontFamily: "system-ui" }}
+                      >
+                        {index + 1}
+                      </text>
+                    </g>
+                  );
+                })}
+              </svg>
+
+              {/* Map overlay gradient */}
+              <div className="absolute inset-0 bg-gradient-to-t from-background/20 to-transparent pointer-events-none" />
+            </div>
 
             {/* Project Details Panel */}
             <AnimatePresence>
@@ -212,9 +252,9 @@ export function ProjectsMap() {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
-                  className="absolute top-4 left-4 w-80 max-h-[calc(100%-2rem)] overflow-y-auto"
+                  className="absolute top-4 left-4 w-80 max-h-[calc(100%-2rem)] overflow-y-auto z-10"
                 >
-                  <Card className="bg-card/95 backdrop-blur-sm border-border">
+                  <Card className="bg-card/95 backdrop-blur-sm border-border shadow-xl">
                     <CardContent className="p-0">
                       <div className="relative">
                         <img
@@ -224,11 +264,11 @@ export function ProjectsMap() {
                         />
                         <button
                           onClick={() => setSelectedProject(null)}
-                          className="absolute top-2 right-2 p-1 bg-background/80 rounded-full hover:bg-background transition-colors"
+                          className="absolute top-2 right-2 p-1.5 bg-background/90 rounded-full hover:bg-background transition-colors"
                         >
                           <X className="w-4 h-4" />
                         </button>
-                        <div className="absolute bottom-2 left-2 w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center text-background font-bold text-sm">
+                        <div className="absolute bottom-2 left-2 w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg">
                           {projects.findIndex(p => p.id === selectedProject.id) + 1}
                         </div>
                       </div>
@@ -261,12 +301,22 @@ export function ProjectsMap() {
             </AnimatePresence>
 
             {/* Legend */}
-            <div className="absolute bottom-4 right-4 bg-card/90 backdrop-blur-sm rounded-lg p-4 border border-border">
-              <p className="text-xs text-muted-foreground mb-2">Click markers to view projects</p>
+            <div className="absolute bottom-4 right-4 bg-card/90 backdrop-blur-sm rounded-lg p-4 border border-border shadow-lg z-10">
+              <h4 className="text-xs font-semibold text-foreground mb-2 uppercase tracking-wider">Central Florida</h4>
+              <p className="text-xs text-muted-foreground mb-3">Click markers to view projects</p>
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-orange-500 rounded-full flex items-center justify-center text-[8px] text-background font-bold">1</div>
+                <div className="w-5 h-5 bg-orange-500 rounded-full flex items-center justify-center text-[9px] text-white font-bold shadow">1</div>
                 <span className="text-xs text-foreground">Project Location</span>
               </div>
+              <div className="flex items-center gap-2 mt-2">
+                <div className="w-5 h-0.5 bg-[#4a5568] rounded" />
+                <span className="text-xs text-muted-foreground">Major Highway</span>
+              </div>
+            </div>
+
+            {/* Map Title */}
+            <div className="absolute top-4 right-4 bg-card/90 backdrop-blur-sm rounded-lg px-4 py-2 border border-border shadow-lg z-10">
+              <span className="text-xs font-semibold text-primary uppercase tracking-wider">Orlando Metro Area</span>
             </div>
           </div>
         </motion.div>

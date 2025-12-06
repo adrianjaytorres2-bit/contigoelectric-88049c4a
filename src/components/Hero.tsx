@@ -6,12 +6,16 @@ import projectConference from "@/assets/project-conference.jpeg";
 import projectRestaurant from "@/assets/project-restaurant.jpeg";
 import projectRetail from "@/assets/project-retail.jpeg";
 import projectCommercial from "@/assets/project-commercial.jpeg";
+import projectGucci from "@/assets/project-gucci.jpeg";
+import projectElectrical from "@/assets/project-electrical.jpeg";
 
 const heroImages = [
   projectConference,
   projectRestaurant,
   projectRetail,
   projectCommercial,
+  projectGucci,
+  projectElectrical,
 ];
 
 const features = [

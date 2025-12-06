@@ -2,11 +2,16 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronRight, ChevronDown, Shield, Clock, Award, DollarSign } from "lucide-react";
 
+import projectConference from "@/assets/project-conference.jpeg";
+import projectRestaurant from "@/assets/project-restaurant.jpeg";
+import projectRetail from "@/assets/project-retail.jpeg";
+import projectCommercial from "@/assets/project-commercial.jpeg";
+
 const heroImages = [
-  "https://images.unsplash.com/photo-1621905251918-48416bd8575a?w=1920&q=80",
-  "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1920&q=80",
-  "https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=1920&q=80",
-  "https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?w=1920&q=80",
+  projectConference,
+  projectRestaurant,
+  projectRetail,
+  projectCommercial,
 ];
 
 const features = [

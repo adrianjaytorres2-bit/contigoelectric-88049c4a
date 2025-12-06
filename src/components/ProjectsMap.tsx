@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, MapPin, Calendar, DollarSign, Building2 } from "lucide-react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import MarkerClusterGroup from "react-leaflet-cluster";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { projects, type Project } from "@/data/projects";
@@ -15,31 +16,47 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
 });
 
-// Custom orange marker icon
-const createNumberedIcon = (number: number) => {
+// Custom red marker icon (like BuildZoom's main location marker)
+const redMarkerIcon = L.icon({
+  iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png",
+  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
+});
+
+// Default blue marker icon
+const blueMarkerIcon = L.icon({
+  iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
+  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
+});
+
+// Custom cluster icon creator (like BuildZoom)
+const createClusterCustomIcon = (cluster: any) => {
+  const count = cluster.getChildCount();
+  let size = "small";
+  let bgColor = "rgba(181, 226, 140, 0.8)";
+  let borderColor = "rgba(110, 204, 57, 1)";
+  
+  if (count >= 10 && count < 50) {
+    size = "medium";
+    bgColor = "rgba(241, 211, 87, 0.8)";
+    borderColor = "rgba(240, 194, 12, 1)";
+  } else if (count >= 50) {
+    size = "large";
+    bgColor = "rgba(253, 156, 115, 0.8)";
+    borderColor = "rgba(241, 128, 23, 1)";
+  }
+
   return L.divIcon({
-    className: "custom-marker",
-    html: `
-      <div style="
-        width: 36px;
-        height: 36px;
-        background: #f97316;
-        border: 3px solid #fff;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: bold;
-        font-size: 14px;
-        color: white;
-        box-shadow: 0 4px 12px rgba(249, 115, 22, 0.5);
-        cursor: pointer;
-      ">
-        ${number}
-      </div>
-    `,
-    iconSize: [36, 36],
-    iconAnchor: [18, 18],
+    html: `<div class="cluster-inner"><span>${count}</span></div>`,
+    className: `marker-cluster marker-cluster-${size}`,
+    iconSize: L.point(40, 40, true),
   });
 };
 
@@ -67,21 +84,24 @@ export function ProjectsMap() {
     setSelectedProject(null);
   };
 
+  // Main office location (Oviedo)
+  const mainOffice = { lat: 28.6692, lng: -81.2079 };
+
   return (
-    <section id="projects" className="py-24 bg-secondary/30">
+    <section id="projects" className="py-16 md:py-24 bg-secondary/30">
       <div className="container mx-auto px-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="text-center mb-12"
+          className="text-center mb-8 md:mb-12"
         >
-          <h2 className="font-display text-5xl md:text-6xl text-foreground mb-4">OUR PROJECTS</h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto mb-2">
-            Explore our 64+ completed projects across Central Florida. Click on any marker to view project details.
+          <h2 className="font-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl text-foreground mb-4">OUR PROJECTS</h2>
+          <p className="text-sm md:text-base text-muted-foreground max-w-2xl mx-auto mb-2">
+            Explore our {projects.length}+ completed projects across Central Florida. Click on any marker to view project details.
           </p>
-          <p className="text-sm text-primary">
+          <p className="text-xs md:text-sm text-primary">
             BuildZoom Score: 108 • Top 5% of Florida Licensed Contractors
           </p>
         </motion.div>
@@ -93,39 +113,56 @@ export function ProjectsMap() {
           transition={{ duration: 0.6, delay: 0.2 }}
           className="relative"
         >
-          <div className="relative h-[500px] md:h-[650px] rounded-lg overflow-hidden border border-border shadow-xl">
+          <div className="relative h-[400px] md:h-[500px] lg:h-[600px] rounded-lg overflow-hidden border border-border shadow-xl">
             <MapContainer
               center={[28.54, -81.38]}
-              zoom={10}
+              zoom={9}
               scrollWheelZoom={true}
               className="h-full w-full z-0"
-              style={{ background: "#1a1a2e" }}
             >
-              {/* Dark themed map tiles */}
+              {/* Standard OSM tiles like BuildZoom */}
               <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-                url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                attribution='&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a>'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
 
               {/* Fly to selected project */}
               <FlyToLocation project={selectedProject} />
 
-              {/* Project Markers */}
-              {projects.map((project, index) => (
-                <Marker
-                  key={project.id}
-                  position={[project.location.lat, project.location.lng]}
-                  icon={createNumberedIcon(index + 1)}
-                  eventHandlers={{
-                    click: () => handleMarkerClick(project),
-                  }}
-                >
-                  <Popup className="custom-popup">
-                    <div className="text-sm font-semibold">{project.name}</div>
-                    <div className="text-xs text-gray-500">{project.location.address}</div>
+              {/* Marker Cluster Group */}
+              <MarkerClusterGroup
+                chunkedLoading
+                iconCreateFunction={createClusterCustomIcon}
+                maxClusterRadius={60}
+                spiderfyOnMaxZoom={true}
+                showCoverageOnHover={false}
+                zoomToBoundsOnClick={true}
+              >
+                {/* Main office marker (red) */}
+                <Marker position={[mainOffice.lat, mainOffice.lng]} icon={redMarkerIcon}>
+                  <Popup>
+                    <div className="text-sm font-semibold">Contigo Electric HQ</div>
+                    <div className="text-xs text-gray-500">Oviedo, FL</div>
                   </Popup>
                 </Marker>
-              ))}
+
+                {/* Project Markers (blue) */}
+                {projects.map((project) => (
+                  <Marker
+                    key={project.id}
+                    position={[project.location.lat, project.location.lng]}
+                    icon={blueMarkerIcon}
+                    eventHandlers={{
+                      click: () => handleMarkerClick(project),
+                    }}
+                  >
+                    <Popup>
+                      <div className="text-sm font-semibold">{project.name}</div>
+                      <div className="text-xs text-gray-500">{project.location.address}</div>
+                    </Popup>
+                  </Marker>
+                ))}
+              </MarkerClusterGroup>
             </MapContainer>
 
             {/* Project Details Panel - Mobile: bottom sheet, Desktop: side panel */}
@@ -153,9 +190,6 @@ export function ProjectsMap() {
                         >
                           <X className="w-4 h-4" />
                         </button>
-                        <div className="absolute bottom-2 left-2 w-8 h-8 md:w-10 md:h-10 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold shadow-lg text-sm md:text-base">
-                          {projects.findIndex((p) => p.id === selectedProject.id) + 1}
-                        </div>
                       </div>
                       <div className="p-4 md:p-5">
                         <h3 className="font-display text-lg md:text-xl text-foreground mb-2">{selectedProject.name}</h3>
@@ -186,25 +220,26 @@ export function ProjectsMap() {
             </AnimatePresence>
 
             {/* Legend - hidden on mobile when project selected */}
-            <div className={`absolute bottom-4 left-4 bg-card/90 backdrop-blur-md rounded-lg p-3 md:p-4 border border-border shadow-lg z-[999] ${selectedProject ? 'hidden md:block' : ''}`}>
-              <p className="text-[10px] md:text-xs text-muted-foreground mb-1 md:mb-2">Drag to pan • Pinch to zoom</p>
+            <div className={`absolute bottom-4 right-4 bg-card/90 backdrop-blur-md rounded-lg p-2 md:p-3 border border-border shadow-lg z-[999] ${selectedProject ? 'hidden md:block' : ''}`}>
+              <div className="flex items-center gap-2 mb-1">
+                <img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png" alt="HQ" className="w-3 h-5" />
+                <span className="text-[10px] md:text-xs text-foreground">Headquarters</span>
+              </div>
               <div className="flex items-center gap-2">
-                <div className="w-5 h-5 md:w-6 md:h-6 bg-orange-500 rounded-full flex items-center justify-center text-[8px] md:text-[10px] text-white font-bold border-2 border-white">
-                  1
-                </div>
-                <span className="text-[10px] md:text-xs text-foreground">Tap marker for details</span>
+                <img src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png" alt="Project" className="w-3 h-5" />
+                <span className="text-[10px] md:text-xs text-foreground">Project Location</span>
               </div>
             </div>
           </div>
         </motion.div>
 
         {/* Project Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-12">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mt-8 md:mt-12">
           {[
-            { value: "64+", label: "Projects Completed" },
+            { value: `${projects.length}+`, label: "Projects Completed" },
             { value: "108", label: "BuildZoom Score" },
             { value: "Top 5%", label: "FL Contractors" },
-            { value: "6+", label: "Licenses Held" },
+            { value: "EC13007893", label: "License Number" },
           ].map((stat, index) => (
             <motion.div
               key={stat.label}
@@ -212,14 +247,64 @@ export function ProjectsMap() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
-              className="text-center p-6 bg-card rounded-lg border border-border"
+              className="text-center p-4 md:p-6 bg-card rounded-lg border border-border"
             >
-              <div className="font-display text-3xl md:text-4xl text-primary mb-2">{stat.value}</div>
-              <div className="text-sm text-muted-foreground">{stat.label}</div>
+              <div className="font-display text-xl sm:text-2xl md:text-3xl lg:text-4xl text-primary mb-1 md:mb-2">{stat.value}</div>
+              <div className="text-xs md:text-sm text-muted-foreground">{stat.label}</div>
             </motion.div>
           ))}
         </div>
       </div>
+
+      {/* Cluster styling */}
+      <style>{`
+        .marker-cluster {
+          background-clip: padding-box;
+          border-radius: 20px;
+        }
+        .marker-cluster div {
+          width: 30px;
+          height: 30px;
+          margin-left: 5px;
+          margin-top: 5px;
+          text-align: center;
+          border-radius: 15px;
+          font: 12px "Helvetica Neue", Arial, Helvetica, sans-serif;
+          font-weight: bold;
+        }
+        .marker-cluster span {
+          line-height: 30px;
+        }
+        .marker-cluster-small {
+          background-color: rgba(181, 226, 140, 0.6);
+        }
+        .marker-cluster-small div {
+          background-color: rgba(110, 204, 57, 0.6);
+          color: #fff;
+        }
+        .marker-cluster-medium {
+          background-color: rgba(241, 211, 87, 0.6);
+        }
+        .marker-cluster-medium div {
+          background-color: rgba(240, 194, 12, 0.6);
+          color: #fff;
+        }
+        .marker-cluster-large {
+          background-color: rgba(253, 156, 115, 0.6);
+        }
+        .marker-cluster-large div {
+          background-color: rgba(241, 128, 23, 0.6);
+          color: #fff;
+        }
+        .cluster-inner {
+          width: 30px;
+          height: 30px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 50%;
+        }
+      `}</style>
     </section>
   );
 }

@@ -128,22 +128,24 @@ export function ProjectsMap() {
               ))}
             </MapContainer>
 
-            {/* Project Details Panel */}
+            {/* Project Details Panel - Mobile: bottom sheet, Desktop: side panel */}
             <AnimatePresence>
               {selectedProject && (
                 <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  className="absolute top-4 left-4 w-80 max-h-[calc(100%-2rem)] overflow-y-auto z-[1000]"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 20 }}
+                  className="absolute bottom-0 left-0 right-0 md:bottom-auto md:top-4 md:left-4 md:right-auto md:w-80 max-h-[60%] md:max-h-[calc(100%-2rem)] overflow-y-auto z-[1000]"
                 >
-                  <Card className="bg-card/95 backdrop-blur-md border-border shadow-2xl">
+                  <Card className="bg-card/95 backdrop-blur-md border-border shadow-2xl rounded-t-2xl md:rounded-lg">
                     <CardContent className="p-0">
                       <div className="relative">
+                        {/* Mobile drag indicator */}
+                        <div className="md:hidden absolute top-2 left-1/2 -translate-x-1/2 w-10 h-1 bg-muted-foreground/30 rounded-full z-10" />
                         <img
                           src={selectedProject.image}
                           alt={selectedProject.name}
-                          className="w-full h-44 object-cover"
+                          className="w-full h-32 md:h-44 object-cover rounded-t-2xl md:rounded-t-lg"
                         />
                         <button
                           onClick={closeProjectDetails}
@@ -151,29 +153,29 @@ export function ProjectsMap() {
                         >
                           <X className="w-4 h-4" />
                         </button>
-                        <div className="absolute bottom-2 left-2 w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold shadow-lg">
+                        <div className="absolute bottom-2 left-2 w-8 h-8 md:w-10 md:h-10 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold shadow-lg text-sm md:text-base">
                           {projects.findIndex((p) => p.id === selectedProject.id) + 1}
                         </div>
                       </div>
-                      <div className="p-5">
-                        <h3 className="font-display text-xl text-foreground mb-2">{selectedProject.name}</h3>
-                        <p className="text-sm text-muted-foreground mb-4">{selectedProject.description}</p>
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-3 text-sm">
-                            <Building2 className="w-4 h-4 text-primary flex-shrink-0" />
-                            <span className="text-foreground">{selectedProject.type}</span>
+                      <div className="p-4 md:p-5">
+                        <h3 className="font-display text-lg md:text-xl text-foreground mb-2">{selectedProject.name}</h3>
+                        <p className="text-xs md:text-sm text-muted-foreground mb-3 md:mb-4 line-clamp-2 md:line-clamp-none">{selectedProject.description}</p>
+                        <div className="grid grid-cols-2 md:grid-cols-1 gap-2 md:gap-3">
+                          <div className="flex items-center gap-2 md:gap-3 text-xs md:text-sm">
+                            <Building2 className="w-3 h-3 md:w-4 md:h-4 text-primary flex-shrink-0" />
+                            <span className="text-foreground truncate">{selectedProject.type}</span>
                           </div>
-                          <div className="flex items-center gap-3 text-sm">
-                            <DollarSign className="w-4 h-4 text-primary flex-shrink-0" />
+                          <div className="flex items-center gap-2 md:gap-3 text-xs md:text-sm">
+                            <DollarSign className="w-3 h-3 md:w-4 md:h-4 text-primary flex-shrink-0" />
                             <span className="text-foreground">{selectedProject.value}</span>
                           </div>
-                          <div className="flex items-center gap-3 text-sm">
-                            <Calendar className="w-4 h-4 text-primary flex-shrink-0" />
+                          <div className="flex items-center gap-2 md:gap-3 text-xs md:text-sm">
+                            <Calendar className="w-3 h-3 md:w-4 md:h-4 text-primary flex-shrink-0" />
                             <span className="text-foreground">{selectedProject.year}</span>
                           </div>
-                          <div className="flex items-center gap-3 text-sm">
-                            <MapPin className="w-4 h-4 text-primary flex-shrink-0" />
-                            <span className="text-foreground">{selectedProject.location.address}</span>
+                          <div className="flex items-center gap-2 md:gap-3 text-xs md:text-sm col-span-2 md:col-span-1">
+                            <MapPin className="w-3 h-3 md:w-4 md:h-4 text-primary flex-shrink-0" />
+                            <span className="text-foreground truncate">{selectedProject.location.address}</span>
                           </div>
                         </div>
                       </div>
@@ -183,14 +185,14 @@ export function ProjectsMap() {
               )}
             </AnimatePresence>
 
-            {/* Legend */}
-            <div className="absolute bottom-4 left-4 bg-card/90 backdrop-blur-md rounded-lg p-4 border border-border shadow-lg z-[1000]">
-              <p className="text-xs text-muted-foreground mb-2">Drag to pan • Scroll to zoom</p>
+            {/* Legend - hidden on mobile when project selected */}
+            <div className={`absolute bottom-4 left-4 bg-card/90 backdrop-blur-md rounded-lg p-3 md:p-4 border border-border shadow-lg z-[999] ${selectedProject ? 'hidden md:block' : ''}`}>
+              <p className="text-[10px] md:text-xs text-muted-foreground mb-1 md:mb-2">Drag to pan • Pinch to zoom</p>
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center text-[10px] text-white font-bold border-2 border-white">
+                <div className="w-5 h-5 md:w-6 md:h-6 bg-orange-500 rounded-full flex items-center justify-center text-[8px] md:text-[10px] text-white font-bold border-2 border-white">
                   1
                 </div>
-                <span className="text-xs text-foreground">Click marker for details</span>
+                <span className="text-[10px] md:text-xs text-foreground">Tap marker for details</span>
               </div>
             </div>
           </div>

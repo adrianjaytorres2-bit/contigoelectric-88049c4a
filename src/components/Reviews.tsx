@@ -130,7 +130,16 @@ export function Reviews() {
           <p className="text-sm md:text-base text-muted-foreground mb-4 px-2">
             Have you worked with Contigo Electric? We'd love to hear about your experience.
           </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 md:gap-4">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 md:gap-4 flex-wrap">
+            <a
+              href="https://www.google.com/search?q=contigo+electric+oviedo+review"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full sm:w-auto px-5 md:px-6 py-2.5 md:py-3 bg-blue-600 text-white rounded-lg hover:opacity-90 transition-opacity inline-flex items-center justify-center gap-2 text-sm md:text-base"
+            >
+              Write a Google Review
+              <ExternalLink className="w-3 h-3 md:w-4 md:h-4" />
+            </a>
             <a
               href="https://www.yelp.com/writeareview/biz/contigo-electric-oviedo"
               target="_blank"

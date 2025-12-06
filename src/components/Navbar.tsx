@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
+import { Link, useNavigate } from "react-router-dom";
 
 import logo from "@/assets/logo.png";
 
@@ -10,12 +11,14 @@ const navLinks = [
   { name: "ABOUT", href: "#about" },
   { name: "PROJECTS", href: "#projects" },
   { name: "REVIEWS", href: "#reviews" },
+  { name: "CAREERS", href: "/careers", isRoute: true },
   { name: "CONTACT", href: "#contact" },
 ];
 
 export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -24,6 +27,16 @@ export function Navbar() {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  const handleNavClick = (link: typeof navLinks[0]) => {
+    setIsMobileMenuOpen(false);
+    if (link.isRoute) {
+      navigate(link.href);
+    } else {
+      const element = document.querySelector(link.href);
+      element?.scrollIntoView({ behavior: "smooth" });
+    }
+  };
 
   const scrollToSection = (href: string) => {
     const element = document.querySelector(href);
@@ -40,16 +53,16 @@ export function Navbar() {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
-          <a href="#" className="flex items-center">
+          <Link to="/" className="flex items-center">
             <img src={logo} alt="Contigo Electric Inc." className="h-12 w-auto" />
-          </a>
+          </Link>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-8">
             {navLinks.map((link) => (
               <button
                 key={link.name}
-                onClick={() => scrollToSection(link.href)}
+                onClick={() => handleNavClick(link)}
                 className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors"
               >
                 {link.name}
@@ -86,7 +99,7 @@ export function Navbar() {
               {navLinks.map((link) => (
                 <button
                   key={link.name}
-                  onClick={() => scrollToSection(link.href)}
+                  onClick={() => handleNavClick(link)}
                   className="text-left py-2 text-foreground/80 hover:text-primary transition-colors"
                 >
                   {link.name}

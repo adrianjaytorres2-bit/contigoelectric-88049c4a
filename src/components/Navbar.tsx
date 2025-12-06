@@ -3,6 +3,8 @@ import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 
+import logo from "@/assets/logo.png";
+
 const navLinks = [
   { name: "SERVICES", href: "#services" },
   { name: "ABOUT", href: "#about" },
@@ -38,13 +40,8 @@ export function Navbar() {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
-          <a href="#" className="flex items-center gap-2">
-            <span className="font-display text-3xl tracking-wider">
-              <span className="text-primary">contigo</span>
-            </span>
-            <span className="text-xs text-muted-foreground tracking-widest uppercase">
-              Electric Inc.
-            </span>
+          <a href="#" className="flex items-center">
+            <img src={logo} alt="Contigo Electric Inc." className="h-12 w-auto" />
           </a>
 
           {/* Desktop Navigation */}

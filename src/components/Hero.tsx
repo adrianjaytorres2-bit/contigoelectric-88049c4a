@@ -2,18 +2,14 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronRight, ChevronDown, Shield, Clock, Award, DollarSign } from "lucide-react";
 
-import projectConference from "@/assets/project-conference.jpeg";
 import projectRestaurant from "@/assets/project-restaurant.jpeg";
 import projectRetail from "@/assets/project-retail.jpeg";
-import projectCommercial from "@/assets/project-commercial.jpeg";
 import projectGucci from "@/assets/project-gucci.jpeg";
 import projectElectrical from "@/assets/project-electrical.jpeg";
 
 const heroImages = [
-  projectConference,
   projectRestaurant,
   projectRetail,
-  projectCommercial,
   projectGucci,
   projectElectrical,
 ];

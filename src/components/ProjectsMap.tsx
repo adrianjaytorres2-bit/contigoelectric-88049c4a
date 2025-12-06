@@ -1,144 +1,70 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, MapPin, Calendar, DollarSign, Building2, ZoomIn } from "lucide-react";
-import mapboxgl from "mapbox-gl";
-import "mapbox-gl/dist/mapbox-gl.css";
+import { X, MapPin, Calendar, DollarSign, Building2 } from "lucide-react";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 import { projects, type Project } from "@/data/projects";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+
+// Fix for default marker icons in Leaflet with Vite
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
+  iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
+  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
+});
+
+// Custom orange marker icon
+const createNumberedIcon = (number: number) => {
+  return L.divIcon({
+    className: "custom-marker",
+    html: `
+      <div style="
+        width: 36px;
+        height: 36px;
+        background: #f97316;
+        border: 3px solid #fff;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 14px;
+        color: white;
+        box-shadow: 0 4px 12px rgba(249, 115, 22, 0.5);
+        cursor: pointer;
+      ">
+        ${number}
+      </div>
+    `,
+    iconSize: [36, 36],
+    iconAnchor: [18, 18],
+  });
+};
+
+// Component to fly to location
+function FlyToLocation({ project }: { project: Project | null }) {
+  const map = useMap();
+  
+  if (project) {
+    map.flyTo([project.location.lat, project.location.lng], 14, {
+      duration: 1.5,
+    });
+  }
+  
+  return null;
+}
 
 export function ProjectsMap() {
-  const mapContainer = useRef<HTMLDivElement>(null);
-  const map = useRef<mapboxgl.Map | null>(null);
-  const markersRef = useRef<mapboxgl.Marker[]>([]);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [mapboxToken, setMapboxToken] = useState<string>("");
-  const [tokenInput, setTokenInput] = useState<string>("");
-  const [isMapReady, setIsMapReady] = useState(false);
 
-  const initializeMap = (token: string) => {
-    if (!mapContainer.current || map.current) return;
-
-    try {
-      mapboxgl.accessToken = token;
-
-      map.current = new mapboxgl.Map({
-        container: mapContainer.current,
-        style: "mapbox://styles/mapbox/dark-v11",
-        center: [-81.38, 28.54],
-        zoom: 10,
-        pitch: 45,
-        bearing: -10,
-      });
-
-      // Add navigation controls (zoom in/out)
-      map.current.addControl(
-        new mapboxgl.NavigationControl({
-          visualizePitch: true,
-        }),
-        "top-right"
-      );
-
-      // Add fullscreen control
-      map.current.addControl(new mapboxgl.FullscreenControl(), "top-right");
-
-      map.current.on("load", () => {
-        setIsMapReady(true);
-
-        // Add markers for each project
-        projects.forEach((project, index) => {
-          // Create custom marker element
-          const markerEl = document.createElement("div");
-          markerEl.className = "project-marker";
-          markerEl.style.cssText = `
-            width: 36px;
-            height: 36px;
-            background: #f97316;
-            border: 3px solid #fff;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 14px;
-            color: white;
-            box-shadow: 0 4px 12px rgba(249, 115, 22, 0.4);
-            transition: transform 0.2s, box-shadow 0.2s;
-          `;
-          markerEl.textContent = String(index + 1);
-
-          markerEl.addEventListener("mouseenter", () => {
-            markerEl.style.transform = "scale(1.2)";
-            markerEl.style.boxShadow = "0 6px 20px rgba(249, 115, 22, 0.6)";
-          });
-
-          markerEl.addEventListener("mouseleave", () => {
-            markerEl.style.transform = "scale(1)";
-            markerEl.style.boxShadow = "0 4px 12px rgba(249, 115, 22, 0.4)";
-          });
-
-          markerEl.addEventListener("click", () => {
-            setSelectedProject(project);
-            map.current?.flyTo({
-              center: [project.location.lng, project.location.lat],
-              zoom: 14,
-              duration: 1500,
-              pitch: 60,
-            });
-          });
-
-          const marker = new mapboxgl.Marker(markerEl)
-            .setLngLat([project.location.lng, project.location.lat])
-            .addTo(map.current!);
-
-          markersRef.current.push(marker);
-        });
-      });
-
-      map.current.on("error", () => {
-        setIsMapReady(false);
-        localStorage.removeItem("mapbox_token");
-      });
-    } catch {
-      console.error("Failed to initialize map");
-    }
-  };
-
-  useEffect(() => {
-    // Check for saved token
-    const savedToken = localStorage.getItem("mapbox_token");
-    if (savedToken) {
-      setMapboxToken(savedToken);
-      initializeMap(savedToken);
-    }
-
-    return () => {
-      markersRef.current.forEach((marker) => marker.remove());
-      map.current?.remove();
-      map.current = null;
-    };
-  }, []);
-
-  const handleTokenSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (tokenInput.trim()) {
-      const token = tokenInput.trim();
-      localStorage.setItem("mapbox_token", token);
-      setMapboxToken(token);
-      initializeMap(token);
-    }
+  const handleMarkerClick = (project: Project) => {
+    setSelectedProject(project);
   };
 
   const closeProjectDetails = () => {
     setSelectedProject(null);
-    map.current?.flyTo({
-      center: [-81.38, 28.54],
-      zoom: 10,
-      duration: 1500,
-      pitch: 45,
-    });
   };
 
   return (
@@ -167,111 +93,107 @@ export function ProjectsMap() {
           transition={{ duration: 0.6, delay: 0.2 }}
           className="relative"
         >
-          {!mapboxToken ? (
-            <Card className="bg-card border-border">
-              <CardContent className="p-8 md:p-12">
-                <div className="text-center mb-8">
-                  <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <ZoomIn className="w-8 h-8 text-primary" />
-                  </div>
-                  <h3 className="font-display text-2xl text-foreground mb-2">Interactive Project Map</h3>
-                  <p className="text-muted-foreground text-sm mb-4 max-w-md mx-auto">
-                    Enter your Mapbox public token to explore our project locations with full zoom and pan controls.
-                  </p>
-                  <a
-                    href="https://account.mapbox.com/access-tokens/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary hover:underline text-sm"
-                  >
-                    Get your free token at mapbox.com →
-                  </a>
-                </div>
-                <form onSubmit={handleTokenSubmit} className="flex flex-col sm:flex-row gap-4 max-w-lg mx-auto">
-                  <Input
-                    type="text"
-                    placeholder="pk.eyJ1Ijoi... (paste your public token)"
-                    value={tokenInput}
-                    onChange={(e) => setTokenInput(e.target.value)}
-                    className="flex-1 bg-secondary border-border"
-                  />
-                  <Button type="submit" className="bg-primary text-primary-foreground hover:bg-primary/90">
-                    Load Map
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="relative h-[500px] md:h-[650px] rounded-lg overflow-hidden border border-border shadow-xl">
-              <div ref={mapContainer} className="absolute inset-0" />
+          <div className="relative h-[500px] md:h-[650px] rounded-lg overflow-hidden border border-border shadow-xl">
+            <MapContainer
+              center={[28.54, -81.38]}
+              zoom={10}
+              scrollWheelZoom={true}
+              className="h-full w-full z-0"
+              style={{ background: "#1a1a2e" }}
+            >
+              {/* Dark themed map tiles */}
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+              />
 
-              {/* Project Details Panel */}
-              <AnimatePresence>
-                {selectedProject && (
-                  <motion.div
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    className="absolute top-4 left-4 w-80 max-h-[calc(100%-2rem)] overflow-y-auto z-10"
-                  >
-                    <Card className="bg-card/95 backdrop-blur-md border-border shadow-2xl">
-                      <CardContent className="p-0">
-                        <div className="relative">
-                          <img
-                            src={selectedProject.image}
-                            alt={selectedProject.name}
-                            className="w-full h-44 object-cover"
-                          />
-                          <button
-                            onClick={closeProjectDetails}
-                            className="absolute top-2 right-2 p-1.5 bg-background/90 rounded-full hover:bg-background transition-colors"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                          <div className="absolute bottom-2 left-2 w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold shadow-lg">
-                            {projects.findIndex((p) => p.id === selectedProject.id) + 1}
+              {/* Fly to selected project */}
+              <FlyToLocation project={selectedProject} />
+
+              {/* Project Markers */}
+              {projects.map((project, index) => (
+                <Marker
+                  key={project.id}
+                  position={[project.location.lat, project.location.lng]}
+                  icon={createNumberedIcon(index + 1)}
+                  eventHandlers={{
+                    click: () => handleMarkerClick(project),
+                  }}
+                >
+                  <Popup className="custom-popup">
+                    <div className="text-sm font-semibold">{project.name}</div>
+                    <div className="text-xs text-gray-500">{project.location.address}</div>
+                  </Popup>
+                </Marker>
+              ))}
+            </MapContainer>
+
+            {/* Project Details Panel */}
+            <AnimatePresence>
+              {selectedProject && (
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="absolute top-4 left-4 w-80 max-h-[calc(100%-2rem)] overflow-y-auto z-[1000]"
+                >
+                  <Card className="bg-card/95 backdrop-blur-md border-border shadow-2xl">
+                    <CardContent className="p-0">
+                      <div className="relative">
+                        <img
+                          src={selectedProject.image}
+                          alt={selectedProject.name}
+                          className="w-full h-44 object-cover"
+                        />
+                        <button
+                          onClick={closeProjectDetails}
+                          className="absolute top-2 right-2 p-1.5 bg-background/90 rounded-full hover:bg-background transition-colors"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                        <div className="absolute bottom-2 left-2 w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold shadow-lg">
+                          {projects.findIndex((p) => p.id === selectedProject.id) + 1}
+                        </div>
+                      </div>
+                      <div className="p-5">
+                        <h3 className="font-display text-xl text-foreground mb-2">{selectedProject.name}</h3>
+                        <p className="text-sm text-muted-foreground mb-4">{selectedProject.description}</p>
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-3 text-sm">
+                            <Building2 className="w-4 h-4 text-primary flex-shrink-0" />
+                            <span className="text-foreground">{selectedProject.type}</span>
+                          </div>
+                          <div className="flex items-center gap-3 text-sm">
+                            <DollarSign className="w-4 h-4 text-primary flex-shrink-0" />
+                            <span className="text-foreground">{selectedProject.value}</span>
+                          </div>
+                          <div className="flex items-center gap-3 text-sm">
+                            <Calendar className="w-4 h-4 text-primary flex-shrink-0" />
+                            <span className="text-foreground">{selectedProject.year}</span>
+                          </div>
+                          <div className="flex items-center gap-3 text-sm">
+                            <MapPin className="w-4 h-4 text-primary flex-shrink-0" />
+                            <span className="text-foreground">{selectedProject.location.address}</span>
                           </div>
                         </div>
-                        <div className="p-5">
-                          <h3 className="font-display text-xl text-foreground mb-2">{selectedProject.name}</h3>
-                          <p className="text-sm text-muted-foreground mb-4">{selectedProject.description}</p>
-                          <div className="space-y-3">
-                            <div className="flex items-center gap-3 text-sm">
-                              <Building2 className="w-4 h-4 text-primary flex-shrink-0" />
-                              <span className="text-foreground">{selectedProject.type}</span>
-                            </div>
-                            <div className="flex items-center gap-3 text-sm">
-                              <DollarSign className="w-4 h-4 text-primary flex-shrink-0" />
-                              <span className="text-foreground">{selectedProject.value}</span>
-                            </div>
-                            <div className="flex items-center gap-3 text-sm">
-                              <Calendar className="w-4 h-4 text-primary flex-shrink-0" />
-                              <span className="text-foreground">{selectedProject.year}</span>
-                            </div>
-                            <div className="flex items-center gap-3 text-sm">
-                              <MapPin className="w-4 h-4 text-primary flex-shrink-0" />
-                              <span className="text-foreground">{selectedProject.location.address}</span>
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-              {/* Legend */}
-              <div className="absolute bottom-4 left-4 bg-card/90 backdrop-blur-md rounded-lg p-4 border border-border shadow-lg z-10">
-                <p className="text-xs text-muted-foreground mb-2">Drag to pan • Scroll to zoom</p>
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center text-[10px] text-white font-bold border-2 border-white">
-                    1
-                  </div>
-                  <span className="text-xs text-foreground">Click marker for details</span>
+            {/* Legend */}
+            <div className="absolute bottom-4 left-4 bg-card/90 backdrop-blur-md rounded-lg p-4 border border-border shadow-lg z-[1000]">
+              <p className="text-xs text-muted-foreground mb-2">Drag to pan • Scroll to zoom</p>
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center text-[10px] text-white font-bold border-2 border-white">
+                  1
                 </div>
+                <span className="text-xs text-foreground">Click marker for details</span>
               </div>
             </div>
-          )}
+          </div>
         </motion.div>
 
         {/* Project Stats */}

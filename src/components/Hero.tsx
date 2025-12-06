@@ -67,12 +67,12 @@ export function Hero() {
       </div>
 
       {/* Content */}
-      <div className="relative z-10 flex-1 flex flex-col justify-center items-center text-center px-4 pt-20">
+      <div className="relative z-10 flex-1 flex flex-col justify-center items-center text-center px-4 pt-24 md:pt-20">
         <motion.h1
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.2 }}
-          className="font-display text-6xl md:text-8xl lg:text-9xl tracking-wider text-foreground"
+          className="font-display text-4xl sm:text-6xl md:text-8xl lg:text-9xl tracking-wider text-foreground"
         >
           POWERING
         </motion.h1>
@@ -80,7 +80,7 @@ export function Hero() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.4 }}
-          className="font-display text-5xl md:text-7xl lg:text-8xl tracking-wider text-gradient-cyan"
+          className="font-display text-3xl sm:text-5xl md:text-7xl lg:text-8xl tracking-wider text-gradient-cyan"
         >
           YOUR SUCCESS
         </motion.h2>
@@ -88,7 +88,7 @@ export function Hero() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.6 }}
-          className="mt-6 text-lg md:text-xl text-muted-foreground max-w-2xl"
+          className="mt-4 md:mt-6 text-base md:text-xl text-muted-foreground max-w-2xl px-2"
         >
           A Full-Service Commercial Electrical Contractor with Comprehensive Projects Across Central Florida.
         </motion.p>
@@ -97,20 +97,20 @@ export function Hero() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.8 }}
           onClick={scrollToContact}
-          className="mt-8 flex items-center gap-2 text-primary hover:gap-4 transition-all duration-300 group"
+          className="mt-6 md:mt-8 flex items-center gap-2 text-primary hover:gap-4 transition-all duration-300 group"
         >
-          <span className="text-sm tracking-widest font-medium">REQUEST A PROPOSAL</span>
-          <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+          <span className="text-xs sm:text-sm tracking-widest font-medium">REQUEST A PROPOSAL</span>
+          <ChevronRight className="w-4 h-4 md:w-5 md:h-5 group-hover:translate-x-1 transition-transform" />
         </motion.button>
 
         {/* Image Indicators */}
-        <div className="flex gap-2 mt-12">
+        <div className="flex gap-2 mt-8 md:mt-12">
           {heroImages.map((_, index) => (
             <button
               key={index}
               onClick={() => setCurrentImage(index)}
               className={`h-1 transition-all duration-300 ${
-                index === currentImage ? "w-8 bg-primary" : "w-4 bg-foreground/30"
+                index === currentImage ? "w-6 md:w-8 bg-primary" : "w-3 md:w-4 bg-foreground/30"
               }`}
             />
           ))}
@@ -122,28 +122,28 @@ export function Hero() {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.8, delay: 1.2 }}
           onClick={scrollToServices}
-          className="absolute bottom-8 animate-bounce"
+          className="absolute bottom-4 md:bottom-8 animate-bounce"
         >
-          <ChevronDown className="w-8 h-8 text-primary" />
+          <ChevronDown className="w-6 h-6 md:w-8 md:h-8 text-primary" />
         </motion.button>
       </div>
 
       {/* Feature Cards */}
       <div className="relative z-10 bg-background/90 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="container mx-auto px-4 py-6 md:py-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             {features.map((feature, index) => (
               <motion.div
                 key={feature.title}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 1 + index * 0.1 }}
-                className="flex items-start gap-4 p-4"
+                className="flex flex-col sm:flex-row items-center sm:items-start gap-2 sm:gap-4 p-3 md:p-4 text-center sm:text-left"
               >
-                <feature.icon className="w-8 h-8 text-primary flex-shrink-0" />
+                <feature.icon className="w-6 h-6 md:w-8 md:h-8 text-primary flex-shrink-0" />
                 <div>
-                  <h3 className="font-display text-lg text-foreground">{feature.title}</h3>
-                  <p className="text-sm text-muted-foreground">{feature.desc}</p>
+                  <h3 className="font-display text-sm md:text-lg text-foreground">{feature.title}</h3>
+                  <p className="text-xs md:text-sm text-muted-foreground hidden sm:block">{feature.desc}</p>
                 </div>
               </motion.div>
             ))}

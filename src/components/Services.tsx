@@ -29,22 +29,22 @@ export function Services() {
   };
 
   return (
-    <section id="services" className="py-24 bg-secondary/30">
+    <section id="services" className="py-16 md:py-24 bg-secondary/30">
       <div className="container mx-auto px-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="text-center mb-16"
+          className="text-center mb-10 md:mb-16"
         >
-          <h2 className="font-display text-5xl md:text-6xl text-foreground mb-4">OUR SERVICES</h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
+          <h2 className="font-display text-3xl sm:text-5xl md:text-6xl text-foreground mb-3 md:mb-4">OUR SERVICES</h2>
+          <p className="text-sm md:text-base text-muted-foreground max-w-2xl mx-auto px-2">
             Comprehensive electrical solutions for commercial and industrial facilities across Central Florida.
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
           {services.map((service, index) => (
             <motion.div
               key={service.title}
@@ -54,14 +54,14 @@ export function Services() {
               transition={{ duration: 0.6, delay: index * 0.1 }}
             >
               <Card className="h-full bg-card border-border hover:border-primary/50 transition-colors group">
-                <CardContent className="p-8">
-                  <service.icon className="w-12 h-12 text-primary mb-6" />
-                  <h3 className="font-display text-2xl text-foreground mb-4">{service.title}</h3>
-                  <p className="text-muted-foreground mb-6">{service.description}</p>
-                  <ul className="space-y-2 mb-8">
+                <CardContent className="p-5 md:p-8">
+                  <service.icon className="w-10 h-10 md:w-12 md:h-12 text-primary mb-4 md:mb-6" />
+                  <h3 className="font-display text-xl md:text-2xl text-foreground mb-3 md:mb-4">{service.title}</h3>
+                  <p className="text-sm md:text-base text-muted-foreground mb-4 md:mb-6">{service.description}</p>
+                  <ul className="space-y-2 mb-6 md:mb-8">
                     {service.features.map((feature) => (
-                      <li key={feature} className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                      <li key={feature} className="flex items-center gap-2 text-xs md:text-sm text-muted-foreground">
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
                         {feature}
                       </li>
                     ))}
@@ -70,7 +70,7 @@ export function Services() {
                     onClick={scrollToContact}
                     className="flex items-center gap-2 text-primary hover:gap-3 transition-all group"
                   >
-                    <span className="text-sm tracking-wider font-medium">LEARN MORE</span>
+                    <span className="text-xs md:text-sm tracking-wider font-medium">LEARN MORE</span>
                     <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                   </button>
                 </CardContent>

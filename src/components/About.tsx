@@ -34,7 +34,7 @@ const reasons = [
 
 export function About() {
   return (
-    <section id="about" className="py-24 bg-background">
+    <section id="about" className="py-16 md:py-24 bg-background">
       <div className="container mx-auto px-4">
         {/* Promise Section */}
         <motion.div
@@ -42,13 +42,13 @@ export function About() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="text-center mb-20"
+          className="text-center mb-12 md:mb-20"
         >
-          <h2 className="font-display text-5xl md:text-6xl text-foreground mb-4">OUR PROMISE</h2>
-          <p className="text-muted-foreground mb-12">
+          <h2 className="font-display text-3xl sm:text-5xl md:text-6xl text-foreground mb-3 md:mb-4">OUR PROMISE</h2>
+          <p className="text-sm md:text-base text-muted-foreground mb-8 md:mb-12">
             Every project is approached with precision and professionalism.
           </p>
-          <div className="flex flex-wrap justify-center gap-8 md:gap-16">
+          <div className="flex flex-wrap justify-center gap-6 md:gap-16">
             {["Quality Service", "Customer Satisfaction", "Dependable Execution"].map((item, index) => (
               <motion.div
                 key={item}
@@ -58,36 +58,36 @@ export function About() {
                 transition={{ duration: 0.5, delay: index * 0.1 }}
                 className="text-center"
               >
-                <div className="w-24 h-24 rounded-full border-2 border-primary/30 flex items-center justify-center mx-auto mb-4">
-                  <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                    <CheckCircle className="w-8 h-8 text-primary" />
+                <div className="w-16 h-16 md:w-24 md:h-24 rounded-full border-2 border-primary/30 flex items-center justify-center mx-auto mb-3 md:mb-4">
+                  <div className="w-10 h-10 md:w-16 md:h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                    <CheckCircle className="w-5 h-5 md:w-8 md:h-8 text-primary" />
                   </div>
                 </div>
-                <span className="text-sm font-medium text-foreground">{item}</span>
+                <span className="text-xs md:text-sm font-medium text-foreground">{item}</span>
               </motion.div>
             ))}
           </div>
         </motion.div>
 
         {/* Who We Are */}
-        <div className="grid lg:grid-cols-2 gap-16 items-start">
+        <div className="grid lg:grid-cols-2 gap-10 md:gap-16 items-start">
           <motion.div
             initial={{ opacity: 0, x: -30 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
-            <h2 className="font-display text-5xl md:text-6xl text-foreground mb-6">WHO WE ARE</h2>
-            <p className="text-muted-foreground mb-6 leading-relaxed">
+            <h2 className="font-display text-3xl sm:text-5xl md:text-6xl text-foreground mb-4 md:mb-6">WHO WE ARE</h2>
+            <p className="text-sm md:text-base text-muted-foreground mb-4 md:mb-6 leading-relaxed">
               Contigo Electric Inc. is a trusted commercial electrical contractor based in Orlando, Florida, 
               offering high-quality Electrical, Communications, Security, and Life Safety services.
             </p>
-            <p className="text-muted-foreground mb-8 leading-relaxed">
+            <p className="text-sm md:text-base text-muted-foreground mb-6 md:mb-8 leading-relaxed">
               Since day one, we've built a reputation for delivering dependable work, honest communication, 
               and long-standing client relationships.
             </p>
-            <blockquote className="border-l-4 border-primary pl-6 py-2">
-              <p className="text-xl italic text-foreground">"Your project is our project."</p>
+            <blockquote className="border-l-4 border-primary pl-4 md:pl-6 py-2">
+              <p className="text-lg md:text-xl italic text-foreground">"Your project is our project."</p>
             </blockquote>
           </motion.div>
 
@@ -97,8 +97,8 @@ export function About() {
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
-            <h3 className="font-display text-3xl text-foreground mb-8">OUR VALUES</h3>
-            <div className="grid sm:grid-cols-2 gap-6">
+            <h3 className="font-display text-2xl md:text-3xl text-foreground mb-6 md:mb-8">OUR VALUES</h3>
+            <div className="grid grid-cols-2 gap-3 md:gap-6">
               {values.map((value, index) => (
                 <motion.div
                   key={value.title}
@@ -106,11 +106,11 @@ export function About() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.5, delay: index * 0.1 }}
-                  className="p-6 bg-card rounded-lg border border-border"
+                  className="p-4 md:p-6 bg-card rounded-lg border border-border"
                 >
-                  <value.icon className="w-8 h-8 text-primary mb-4" />
-                  <h4 className="font-display text-lg text-foreground mb-2">{value.title}</h4>
-                  <p className="text-sm text-muted-foreground">{value.description}</p>
+                  <value.icon className="w-6 h-6 md:w-8 md:h-8 text-primary mb-3 md:mb-4" />
+                  <h4 className="font-display text-sm md:text-lg text-foreground mb-1 md:mb-2">{value.title}</h4>
+                  <p className="text-xs md:text-sm text-muted-foreground hidden sm:block">{value.description}</p>
                 </motion.div>
               ))}
             </div>
@@ -123,12 +123,12 @@ export function About() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="mt-20"
+          className="mt-12 md:mt-20"
         >
-          <h3 className="font-display text-3xl text-foreground mb-8 text-center lg:text-left">
+          <h3 className="font-display text-2xl md:text-3xl text-foreground mb-6 md:mb-8 text-center lg:text-left">
             WHY CLIENTS CHOOSE US
           </h3>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
             {reasons.map((reason, index) => (
               <motion.div
                 key={reason}
@@ -136,10 +136,10 @@ export function About() {
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.4, delay: index * 0.05 }}
-                className="flex items-center gap-3 p-4 bg-secondary/50 rounded-lg"
+                className="flex items-center gap-2 md:gap-3 p-3 md:p-4 bg-secondary/50 rounded-lg"
               >
-                <CheckCircle className="w-5 h-5 text-primary flex-shrink-0" />
-                <span className="text-sm text-foreground">{reason}</span>
+                <CheckCircle className="w-4 h-4 md:w-5 md:h-5 text-primary flex-shrink-0" />
+                <span className="text-xs md:text-sm text-foreground">{reason}</span>
               </motion.div>
             ))}
           </div>

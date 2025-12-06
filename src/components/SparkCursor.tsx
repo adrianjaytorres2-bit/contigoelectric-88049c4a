@@ -10,14 +10,12 @@ interface TrailPoint {
 }
 
 export const SparkCursor = () => {
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [trail, setTrail] = useState<TrailPoint[]>([]);
   const [isVisible, setIsVisible] = useState(false);
   const idRef = useRef(0);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      setMousePos({ x: e.clientX, y: e.clientY });
       setIsVisible(true);
       
       // Create jagged lightning trail points
@@ -98,34 +96,9 @@ export const SparkCursor = () => {
         </svg>
       )}
 
-      {/* Main spark point */}
-      <motion.div
-        className="absolute -translate-x-1/2 -translate-y-1/2"
-        animate={{
-          x: mousePos.x,
-          y: mousePos.y,
-          opacity: isVisible ? 1 : 0,
-        }}
-        transition={{
-          type: "spring",
-          stiffness: 800,
-          damping: 35,
-          mass: 0.3,
-        }}
-      >
-        {/* Outer glow */}
-        <div 
-          className="absolute w-6 h-6 -translate-x-1/2 -translate-y-1/2 rounded-full bg-electric-cyan/30 blur-md"
-          style={{ animation: "pulse 0.5s ease-in-out infinite" }}
-        />
-        {/* Inner spark */}
-        <div className="absolute w-3 h-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-electric-cyan blur-[2px]" />
-        <div className="absolute w-1.5 h-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white" />
-      </motion.div>
-
       {/* Random micro sparks */}
       <AnimatePresence>
-        {isVisible && trail.slice(-3).map((point, i) => (
+        {isVisible && trail.slice(-3).map((point) => (
           <motion.div
             key={`spark-${point.id}`}
             className="absolute w-0.5 h-0.5 rounded-full bg-white"

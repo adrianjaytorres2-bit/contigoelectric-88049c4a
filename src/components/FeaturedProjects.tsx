@@ -4,14 +4,27 @@ import { ChevronLeft, ChevronRight, MapPin, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { projects } from "@/data/projects";
 
-// Get top 6 projects by value
-const featuredProjects = [...projects]
-  .sort((a, b) => {
-    const valueA = parseFloat(a.value.replace(/[$,]/g, ""));
-    const valueB = parseFloat(b.value.replace(/[$,]/g, ""));
-    return valueB - valueA;
-  })
-  .slice(0, 6);
+// Get top 6 featured projects (luxury retail brands)
+const featuredProjectNames = [
+  "Gucci - Mall at Millenia",
+  "Christian Louboutin - Millenia Mall",
+  "Versace - Vineland Shops",
+  "Hublot - Millenia Mall",
+  "Marc Jacobs - Vineland Shops",
+  "Omega - Millenia Mall"
+];
+
+const featuredProjects = projects.filter(p => 
+  featuredProjectNames.some(name => p.name.includes(name.split(" - ")[0]))
+).slice(0, 6);
+
+// If not enough luxury brands, add more from the list
+const additionalProjects = projects.filter(p => 
+  !featuredProjects.includes(p) && 
+  (p.type === "Luxury Retail" || p.type === "Restaurant" || p.name.includes("Disney"))
+).slice(0, 6 - featuredProjects.length);
+
+const displayProjects = [...featuredProjects, ...additionalProjects].slice(0, 6);
 
 export const FeaturedProjects = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -51,7 +64,7 @@ export const FeaturedProjects = () => {
               FEATURED <span className="text-primary">PROJECTS</span>
             </h2>
             <p className="text-muted-foreground max-w-xl">
-              From luxury hotels to commercial complexes, explore some of our most impactful electrical installations across Florida.
+              From luxury retail brands to commercial complexes, explore some of our most impactful electrical installations across Florida.
             </p>
           </div>
           
@@ -80,7 +93,7 @@ export const FeaturedProjects = () => {
           className="flex gap-6 overflow-x-auto pb-6 scrollbar-hide snap-x snap-mandatory"
           style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
-          {featuredProjects.map((project, index) => (
+          {displayProjects.map((project, index) => (
             <motion.div
               key={project.id}
               initial={{ opacity: 0, y: 30 }}
@@ -100,13 +113,6 @@ export const FeaturedProjects = () => {
                   </span>
                 </div>
                 
-                {/* Project value */}
-                <div className="absolute top-4 right-4 z-20">
-                  <span className="text-2xl font-display text-primary">
-                    {project.value}
-                  </span>
-                </div>
-                
                 {/* Background pattern */}
                 <div className="absolute inset-0 bg-secondary">
                   <div className="absolute inset-0 opacity-20">
@@ -121,7 +127,7 @@ export const FeaturedProjects = () => {
                   </h3>
                   <div className="flex items-center gap-2 text-muted-foreground text-sm">
                     <MapPin className="w-4 h-4" />
-                    <span>{project.location.address.split(",").slice(-2).join(",").trim()}</span>
+                    <span>{project.city}, {project.state}</span>
                   </div>
                 </div>
                 

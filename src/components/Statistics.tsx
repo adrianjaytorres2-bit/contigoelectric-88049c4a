@@ -57,10 +57,10 @@ const StatItem = ({ icon, value, label, delay }: StatItemProps) => {
         {icon}
       </div>
       <div className="text-5xl md:text-6xl lg:text-7xl font-display text-foreground mb-2">
-        {value === "250+" && <><AnimatedCounter target={250} suffix="+" /></>}
-        {value === "$100M+" && <><AnimatedCounter target={100} prefix="$" suffix="M+" /></>}
         {value === "75+" && <><AnimatedCounter target={75} suffix="+" /></>}
-        {value === "400+" && <><AnimatedCounter target={400} suffix="+" /></>}
+        {value === "$100M+" && <><AnimatedCounter target={100} prefix="$" suffix="M+" /></>}
+        {value === "7+" && <><AnimatedCounter target={7} suffix="+" /></>}
+        {value === "30+" && <><AnimatedCounter target={30} suffix="+" /></>}
       </div>
       <div className="text-muted-foreground text-sm md:text-base uppercase tracking-widest">
         {label}
@@ -73,7 +73,7 @@ export const Statistics = () => {
   const stats = [
     {
       icon: <Building2 className="w-8 h-8" />,
-      value: "250+",
+      value: "75+",
       label: "Projects Completed",
     },
     {
@@ -83,12 +83,12 @@ export const Statistics = () => {
     },
     {
       icon: <Calendar className="w-8 h-8" />,
-      value: "75+",
-      label: "Years Combined Experience",
+      value: "7+",
+      label: "Years of Excellence",
     },
     {
       icon: <MapPin className="w-8 h-8" />,
-      value: "400+",
+      value: "30+",
       label: "Florida Cities Served",
     },
   ];

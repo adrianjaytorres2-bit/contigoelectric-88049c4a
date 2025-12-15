@@ -4,6 +4,32 @@ import { ChevronLeft, ChevronRight, MapPin, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { projects } from "@/data/projects";
 
+// Import existing project images
+import projectGucci from "@/assets/project-gucci.jpeg";
+import projectRetail from "@/assets/project-retail.jpeg";
+import projectRestaurant from "@/assets/project-restaurant.jpeg";
+import projectCommercial from "@/assets/project-commercial.jpeg";
+import projectElectrical from "@/assets/project-electrical.jpeg";
+
+// Map project types to images
+const getProjectImage = (type: string, name: string) => {
+  if (name.toLowerCase().includes("gucci") || name.toLowerCase().includes("versace") || 
+      name.toLowerCase().includes("louboutin") || name.toLowerCase().includes("hublot") ||
+      name.toLowerCase().includes("omega") || name.toLowerCase().includes("marc jacobs")) {
+    return projectGucci;
+  }
+  if (type === "Restaurant" || type === "Fitness" || type === "Wellness") {
+    return projectRestaurant;
+  }
+  if (type === "Retail" || type === "Luxury Retail") {
+    return projectRetail;
+  }
+  if (type === "Commercial" || type === "Financial" || type === "Medical") {
+    return projectCommercial;
+  }
+  return projectElectrical;
+};
+
 // Get top 6 featured projects (luxury retail brands)
 const featuredProjectNames = [
   "Gucci - Mall at Millenia",
@@ -113,11 +139,13 @@ export const FeaturedProjects = () => {
                   </span>
                 </div>
                 
-                {/* Background pattern */}
-                <div className="absolute inset-0 bg-secondary">
-                  <div className="absolute inset-0 opacity-20">
-                    <Building2 className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 text-primary" />
-                  </div>
+                {/* Background image */}
+                <div className="absolute inset-0">
+                  <img 
+                    src={getProjectImage(project.type, project.name)} 
+                    alt={project.name}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
                 
                 {/* Content */}

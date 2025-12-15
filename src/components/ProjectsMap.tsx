@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, MapPin, Calendar, DollarSign, Building2 } from "lucide-react";
+import { X, MapPin, Building2 } from "lucide-react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import L from "leaflet";
@@ -199,17 +199,9 @@ export function ProjectsMap() {
                             <Building2 className="w-3 h-3 md:w-4 md:h-4 text-primary flex-shrink-0" />
                             <span className="text-foreground truncate">{selectedProject.type}</span>
                           </div>
-                          <div className="flex items-center gap-2 md:gap-3 text-xs md:text-sm">
-                            <DollarSign className="w-3 h-3 md:w-4 md:h-4 text-primary flex-shrink-0" />
-                            <span className="text-foreground">{selectedProject.value}</span>
-                          </div>
-                          <div className="flex items-center gap-2 md:gap-3 text-xs md:text-sm">
-                            <Calendar className="w-3 h-3 md:w-4 md:h-4 text-primary flex-shrink-0" />
-                            <span className="text-foreground">{selectedProject.year}</span>
-                          </div>
                           <div className="flex items-center gap-2 md:gap-3 text-xs md:text-sm col-span-2 md:col-span-1">
                             <MapPin className="w-3 h-3 md:w-4 md:h-4 text-primary flex-shrink-0" />
-                            <span className="text-foreground truncate">{selectedProject.location.address}</span>
+                            <span className="text-foreground truncate">{selectedProject.city}, {selectedProject.state}</span>
                           </div>
                         </div>
                       </div>

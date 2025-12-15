@@ -7,32 +7,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { projects, type Project } from "@/data/projects";
 import { Card, CardContent } from "@/components/ui/card";
-
-// Import existing project images
-import projectGucci from "@/assets/project-gucci.jpeg";
-import projectRetail from "@/assets/project-retail.jpeg";
-import projectRestaurant from "@/assets/project-restaurant.jpeg";
-import projectCommercial from "@/assets/project-commercial.jpeg";
-import projectElectrical from "@/assets/project-electrical.jpeg";
-
-// Map project types to images
-const getProjectImage = (type: string, name: string) => {
-  if (name.toLowerCase().includes("gucci") || name.toLowerCase().includes("versace") || 
-      name.toLowerCase().includes("louboutin") || name.toLowerCase().includes("hublot") ||
-      name.toLowerCase().includes("omega") || name.toLowerCase().includes("marc jacobs")) {
-    return projectGucci;
-  }
-  if (type === "Restaurant" || type === "Fitness" || type === "Wellness") {
-    return projectRestaurant;
-  }
-  if (type === "Retail" || type === "Luxury Retail") {
-    return projectRetail;
-  }
-  if (type === "Commercial" || type === "Financial" || type === "Medical") {
-    return projectCommercial;
-  }
-  return projectElectrical;
-};
+import { getProjectImage } from "@/lib/projectImages";
 
 // Fix for default marker icons in Leaflet with Vite
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -206,7 +181,7 @@ export function ProjectsMap() {
                         {/* Mobile drag indicator */}
                         <div className="md:hidden absolute top-2 left-1/2 -translate-x-1/2 w-10 h-1 bg-muted-foreground/30 rounded-full z-10" />
                         <img
-                          src={getProjectImage(selectedProject.type, selectedProject.name)}
+                          src={getProjectImage(selectedProject.type, selectedProject.name, selectedProject.city)}
                           alt={selectedProject.name}
                           className="w-full h-32 md:h-44 object-cover rounded-t-2xl md:rounded-t-lg"
                         />

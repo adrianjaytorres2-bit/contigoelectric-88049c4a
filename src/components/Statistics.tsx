@@ -79,17 +79,17 @@ export const Statistics = () => {
     {
       icon: <DollarSign className="w-8 h-8" />,
       value: "$100M+",
-      label: "Total Project Value",
+      label: "Total Project Experience",
     },
     {
       icon: <Calendar className="w-8 h-8" />,
       value: "75+ Combined",
-      label: "Combined Years of Excellence",
+      label: "Combined Years of Experience",
     },
     {
       icon: <MapPin className="w-8 h-8" />,
       value: "400+",
-      label: "Florida Cities Served",
+      label: "Serving Florida Cities",
     },
   ];
 

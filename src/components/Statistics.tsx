@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, memo, useCallback } from "react";
 import { Building2, DollarSign, Calendar, MapPin } from "lucide-react";
 import { motion, useInView } from "framer-motion";
 
@@ -9,30 +9,37 @@ interface StatItemProps {
   delay: number;
 }
 
-const AnimatedCounter = ({ target, suffix = "", prefix = "" }: { target: number; suffix?: string; prefix?: string }) => {
+const AnimatedCounter = memo(({ target, suffix = "", prefix = "" }: { target: number; suffix?: string; prefix?: string }) => {
   const [count, setCount] = useState(0);
   const ref = useRef<HTMLSpanElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
+  const hasAnimated = useRef(false);
 
   useEffect(() => {
-    if (!isInView) return;
+    if (!isInView || hasAnimated.current) return;
+    hasAnimated.current = true;
     
-    const duration = 2000;
-    const steps = 60;
-    const increment = target / steps;
-    let current = 0;
+    const duration = 1500;
+    const startTime = performance.now();
     
-    const timer = setInterval(() => {
-      current += increment;
-      if (current >= target) {
-        setCount(target);
-        clearInterval(timer);
+    const animate = (currentTime: number) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Easing function for smoother animation
+      const easeOut = 1 - Math.pow(1 - progress, 3);
+      const currentCount = Math.floor(easeOut * target);
+      
+      setCount(currentCount);
+      
+      if (progress < 1) {
+        requestAnimationFrame(animate);
       } else {
-        setCount(Math.floor(current));
+        setCount(target);
       }
-    }, duration / steps);
-
-    return () => clearInterval(timer);
+    };
+    
+    requestAnimationFrame(animate);
   }, [isInView, target]);
 
   return (
@@ -40,11 +47,19 @@ const AnimatedCounter = ({ target, suffix = "", prefix = "" }: { target: number;
       {prefix}{count.toLocaleString()}{suffix}
     </span>
   );
-};
+});
 
-const StatItem = ({ icon, value, label, delay }: StatItemProps) => {
-  const isAnimated = value.includes("+") || value.includes("$");
-  
+AnimatedCounter.displayName = "AnimatedCounter";
+
+const StatItem = memo(({ icon, value, label, delay }: StatItemProps) => {
+  const renderCounter = useCallback(() => {
+    if (value === "250+") return <AnimatedCounter target={250} suffix="+" />;
+    if (value === "$100M+") return <AnimatedCounter target={100} prefix="$" suffix="M+" />;
+    if (value === "75+ Combined") return <AnimatedCounter target={75} suffix="+" />;
+    if (value === "400+") return <AnimatedCounter target={400} suffix="+" />;
+    return value;
+  }, [value]);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 30 }}
@@ -57,42 +72,41 @@ const StatItem = ({ icon, value, label, delay }: StatItemProps) => {
         {icon}
       </div>
       <div className="text-5xl md:text-6xl lg:text-7xl font-display text-foreground mb-2">
-        {value === "250+" && <><AnimatedCounter target={250} suffix="+" /></>}
-        {value === "$100M+" && <><AnimatedCounter target={100} prefix="$" suffix="M+" /></>}
-        {value === "75+ Combined" && <><AnimatedCounter target={75} suffix="+" /></>}
-        {value === "400+" && <><AnimatedCounter target={400} suffix="+" /></>}
+        {renderCounter()}
       </div>
       <div className="text-muted-foreground text-sm md:text-base uppercase tracking-widest">
         {label}
       </div>
     </motion.div>
   );
-};
+});
 
-export const Statistics = () => {
-  const stats = [
-    {
-      icon: <Building2 className="w-8 h-8" />,
-      value: "250+",
-      label: "Projects Completed",
-    },
-    {
-      icon: <DollarSign className="w-8 h-8" />,
-      value: "$100M+",
-      label: "Total Project Experience",
-    },
-    {
-      icon: <Calendar className="w-8 h-8" />,
-      value: "75+ Combined",
-      label: "Combined Years of Experience",
-    },
-    {
-      icon: <MapPin className="w-8 h-8" />,
-      value: "400+",
-      label: "Serving Florida Cities",
-    },
-  ];
+StatItem.displayName = "StatItem";
 
+const stats = [
+  {
+    icon: <Building2 className="w-8 h-8" />,
+    value: "250+",
+    label: "Projects Completed",
+  },
+  {
+    icon: <DollarSign className="w-8 h-8" />,
+    value: "$100M+",
+    label: "Total Project Experience",
+  },
+  {
+    icon: <Calendar className="w-8 h-8" />,
+    value: "75+ Combined",
+    label: "Combined Years of Experience",
+  },
+  {
+    icon: <MapPin className="w-8 h-8" />,
+    value: "400+",
+    label: "Serving Florida Cities",
+  },
+];
+
+export const Statistics = memo(() => {
   return (
     <section className="py-20 md:py-32 bg-secondary/50 relative overflow-hidden">
       {/* Decorative circuit pattern */}
@@ -131,4 +145,6 @@ export const Statistics = () => {
       </div>
     </section>
   );
-};
+});
+
+Statistics.displayName = "Statistics";

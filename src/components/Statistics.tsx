@@ -57,7 +57,7 @@ const StatItem = ({ icon, value, label, delay }: StatItemProps) => {
         {icon}
       </div>
       <div className="text-5xl md:text-6xl lg:text-7xl font-display text-foreground mb-2">
-        {value === "75+" && <><AnimatedCounter target={75} suffix="+" /></>}
+        {value === "250+" && <><AnimatedCounter target={250} suffix="+" /></>}
         {value === "$100M+" && <><AnimatedCounter target={100} prefix="$" suffix="M+" /></>}
         {value === "75+ Combined" && <><AnimatedCounter target={75} suffix="+" /></>}
         {value === "400+" && <><AnimatedCounter target={400} suffix="+" /></>}
@@ -73,7 +73,7 @@ export const Statistics = () => {
   const stats = [
     {
       icon: <Building2 className="w-8 h-8" />,
-      value: "75+",
+      value: "250+",
       label: "Projects Completed",
     },
     {

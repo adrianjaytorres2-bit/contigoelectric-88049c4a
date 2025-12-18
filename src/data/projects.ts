@@ -747,16 +747,6 @@ export const projects: Project[] = [
   },
   // Government & Institutional Projects
   {
-    id: "79",
-    name: "VA Medical Center Lake Nona",
-    description: "Veterans Affairs medical facility electrical systems.",
-    type: "Government",
-    city: "Lake Nona",
-    state: "FL",
-    location: { lat: 28.3680, lng: -81.2850, address: "Lake Nona, FL" },
-    image: "/placeholder.svg"
-  },
-  {
     id: "80",
     name: "Sanford Orlando International Airport",
     description: "Airport terminal electrical infrastructure.",

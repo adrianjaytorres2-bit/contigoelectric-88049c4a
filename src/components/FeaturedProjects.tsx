@@ -1,9 +1,10 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, MapPin } from "lucide-react";
+import { ChevronLeft, ChevronRight, MapPin, ZoomIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { projects } from "@/data/projects";
-import { getProjectImage } from "@/lib/projectImages";
+import { projects, type Project } from "@/data/projects";
+import { getProjectImage, getProjectImages } from "@/lib/projectImages";
+import { ImageLightbox } from "@/components/ImageLightbox";
 
 // Featured project categories
 const luxuryRetailNames = [
@@ -22,7 +23,6 @@ const multiFamilyNames = [
 ];
 
 const governmentNames = [
-  "VA Medical Center Lake Nona",
   "Sanford Orlando International Airport",
   "Viera Middle School"
 ];
@@ -48,9 +48,10 @@ interface ProjectRowProps {
   subtitle: string;
   projects: typeof projects;
   delay?: number;
+  onProjectClick: (project: Project) => void;
 }
 
-const ProjectRow = ({ title, subtitle, projects: rowProjects, delay = 0 }: ProjectRowProps) => {
+const ProjectRow = ({ title, subtitle, projects: rowProjects, delay = 0, onProjectClick }: ProjectRowProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const scroll = (direction: "left" | "right") => {
@@ -113,7 +114,8 @@ const ProjectRow = ({ title, subtitle, projects: rowProjects, delay = 0 }: Proje
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: index * 0.05 }}
             viewport={{ once: true }}
-            className="flex-shrink-0 w-[280px] md:w-[320px] snap-start group"
+            className="flex-shrink-0 w-[280px] md:w-[320px] snap-start group cursor-pointer"
+            onClick={() => onProjectClick(project)}
           >
             <div className="relative h-[220px] md:h-[260px] rounded-lg overflow-hidden bg-card border border-border group-hover:border-primary/50 transition-all duration-300">
               {/* Gradient overlay */}
@@ -126,12 +128,19 @@ const ProjectRow = ({ title, subtitle, projects: rowProjects, delay = 0 }: Proje
                 </span>
               </div>
               
+              {/* Zoom icon - appears on hover */}
+              <div className="absolute top-3 right-3 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <div className="p-2 bg-background/80 rounded-full">
+                  <ZoomIn className="w-4 h-4 text-foreground" />
+                </div>
+              </div>
+              
               {/* Background image */}
               <div className="absolute inset-0">
                 <img 
                   src={getProjectImage(project.type, project.name, project.city)} 
                   alt={project.name}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
               </div>
               
@@ -160,6 +169,19 @@ const ProjectRow = ({ title, subtitle, projects: rowProjects, delay = 0 }: Proje
 };
 
 export const FeaturedProjects = () => {
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxImages, setLightboxImages] = useState<string[]>([]);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [selectedProjectName, setSelectedProjectName] = useState("");
+
+  const handleProjectClick = (project: Project) => {
+    const images = getProjectImages(project.type, project.name, project.city);
+    setLightboxImages(images);
+    setLightboxIndex(0);
+    setSelectedProjectName(project.name);
+    setLightboxOpen(true);
+  };
+
   const scrollToMap = () => {
     const mapSection = document.getElementById("projects");
     if (mapSection) {
@@ -194,6 +216,7 @@ export const FeaturedProjects = () => {
           subtitle="High-end retail and designer boutiques"
           projects={luxuryProjects}
           delay={0.1}
+          onProjectClick={handleProjectClick}
         />
 
         {/* Multi-Family Row */}
@@ -202,6 +225,7 @@ export const FeaturedProjects = () => {
           subtitle="Hotels, apartments, and residential complexes"
           projects={multiFamilyProjects}
           delay={0.2}
+          onProjectClick={handleProjectClick}
         />
 
         {/* Government & Institutional Row */}
@@ -210,6 +234,7 @@ export const FeaturedProjects = () => {
           subtitle="Healthcare, education, and public facilities"
           projects={governmentProjects}
           delay={0.3}
+          onProjectClick={handleProjectClick}
         />
 
         <motion.div
@@ -228,6 +253,16 @@ export const FeaturedProjects = () => {
           </Button>
         </motion.div>
       </div>
+
+      {/* Lightbox */}
+      <ImageLightbox
+        images={lightboxImages}
+        currentIndex={lightboxIndex}
+        isOpen={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+        onNavigate={setLightboxIndex}
+        projectName={selectedProjectName}
+      />
     </section>
   );
 };

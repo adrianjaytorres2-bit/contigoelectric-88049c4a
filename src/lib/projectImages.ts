@@ -60,6 +60,24 @@ import venetianNailSpaJacksonville from "@/assets/projects/venetian-nail-spa-jac
 import venetianNailSpaJacksonville2 from "@/assets/projects/venetian-nail-spa-jacksonville-2.webp";
 import versaceVineland from "@/assets/projects/versace-vineland.webp";
 
+// Multi-Family project images
+import celesteHotel1 from "@/assets/projects/celeste-hotel-1.jpg";
+import celesteHotel2 from "@/assets/projects/celeste-hotel-2.webp";
+import celesteHotel3 from "@/assets/projects/celeste-hotel-3.webp";
+import celesteHotel4 from "@/assets/projects/celeste-hotel-4.webp";
+import theSevens1 from "@/assets/projects/the-sevens-orlando-1.webp";
+import theSevens2 from "@/assets/projects/the-sevens-orlando-2.webp";
+import theSevens3 from "@/assets/projects/the-sevens-orlando-3.webp";
+import theSevens4 from "@/assets/projects/the-sevens-orlando-4.webp";
+import theSevens5 from "@/assets/projects/the-sevens-orlando-5.jpg";
+import palmPlaceApartments from "@/assets/projects/palm-place-apartments.png";
+
+// Government & Institutional project images
+import sanfordAirport1 from "@/assets/projects/sanford-airport-1.png";
+import sanfordAirport2 from "@/assets/projects/sanford-airport-2.jpg";
+import sanfordAirport3 from "@/assets/projects/sanford-airport-3.jpg";
+import vieraMiddleSchool from "@/assets/projects/viera-middle-school.png";
+
 // Fallback images for categories (existing assets)
 import projectGucci from "@/assets/project-gucci.jpeg";
 import projectRetail from "@/assets/project-retail.jpeg";
@@ -175,10 +193,29 @@ const projectImageMap: Record<string, string> = {
   
   // Omega
   "omega": omegaMilleniaMall,
-  
+
   // Palm City Place Apartments
   "palm city": palmCityPlaceApts,
   
+  // Palm Place Apartments
+  "palm place": palmPlaceApartments,
+  
+  // Celeste Hotel
+  "celeste hotel": celesteHotel1,
+  "celeste": celesteHotel1,
+  
+  // The Sevens Apartments
+  "the sevens": theSevens1,
+  "sevens apartments": theSevens1,
+  
+  // Sanford Orlando International Airport
+  "sanford orlando": sanfordAirport1,
+  "sanford airport": sanfordAirport1,
+  
+  // Viera Middle School
+  "viera middle": vieraMiddleSchool,
+  "viera school": vieraMiddleSchool,
+
   // Pizza Hut
   "pizza hut": pizzaHutLakeland,
   
@@ -234,6 +271,14 @@ const projectMultiImageMap: Record<string, string[]> = {
   "jeremiah": [jeremiahsStCloud, jeremiahsStCloud2],
   "uniqlo": [uniqloFloridaMall, uniqloFloridaMall2],
   "venetian": [venetianNailSpaJacksonville, venetianNailSpaJacksonville2],
+  // Multi-Family projects
+  "celeste hotel": [celesteHotel1, celesteHotel2, celesteHotel3, celesteHotel4],
+  "celeste": [celesteHotel1, celesteHotel2, celesteHotel3, celesteHotel4],
+  "the sevens": [theSevens1, theSevens2, theSevens3, theSevens4, theSevens5],
+  "sevens apartments": [theSevens1, theSevens2, theSevens3, theSevens4, theSevens5],
+  // Government & Institutional projects
+  "sanford orlando": [sanfordAirport1, sanfordAirport2, sanfordAirport3],
+  "sanford airport": [sanfordAirport1, sanfordAirport2, sanfordAirport3],
 };
 
 // Get all images for a project (returns array)

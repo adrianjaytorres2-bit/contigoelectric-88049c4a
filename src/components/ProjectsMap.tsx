@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, MapPin, Building2, ChevronLeft, ChevronRight } from "lucide-react";
+import { X, MapPin, Building2, ChevronLeft, ChevronRight, ZoomIn } from "lucide-react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import L from "leaflet";
@@ -9,6 +9,7 @@ import { projects, type Project } from "@/data/projects";
 import { Card, CardContent } from "@/components/ui/card";
 import { getProjectImage, getProjectImages } from "@/lib/projectImages";
 import { Button } from "@/components/ui/button";
+import { ImageLightbox } from "@/components/ImageLightbox";
 
 // Fix for default marker icons in Leaflet with Vite
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -75,49 +76,82 @@ function FlyToLocation({ project }: { project: Project | null }) {
   return null;
 }
 
-// Image slideshow component
-function ImageSlideshow({ images, name }: { images: string[]; name: string }) {
+// Image slideshow component with zoom capability
+function ImageSlideshow({ 
+  images, 
+  name, 
+  onImageClick 
+}: { 
+  images: string[]; 
+  name: string; 
+  onImageClick: (index: number) => void;
+}) {
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  const goToPrevious = () => {
+  const goToPrevious = (e: React.MouseEvent) => {
+    e.stopPropagation();
     setCurrentIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
   };
 
-  const goToNext = () => {
+  const goToNext = (e: React.MouseEvent) => {
+    e.stopPropagation();
     setCurrentIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
   };
 
   if (images.length === 1) {
     return (
-      <img
-        src={images[0]}
-        alt={name}
-        className="w-full h-32 md:h-44 object-cover rounded-t-2xl md:rounded-t-lg"
-      />
+      <div 
+        className="relative cursor-pointer group"
+        onClick={() => onImageClick(0)}
+      >
+        <img
+          src={images[0]}
+          alt={name}
+          className="w-full h-32 md:h-44 object-cover rounded-t-2xl md:rounded-t-lg"
+        />
+        {/* Zoom indicator */}
+        <div className="absolute inset-0 flex items-center justify-center bg-background/20 opacity-0 group-hover:opacity-100 transition-opacity rounded-t-2xl md:rounded-t-lg">
+          <div className="p-3 bg-background/80 rounded-full">
+            <ZoomIn className="w-5 h-5 text-foreground" />
+          </div>
+        </div>
+      </div>
     );
   }
 
   return (
-    <div className="relative">
-      <AnimatePresence mode="wait">
-        <motion.img
-          key={currentIndex}
-          src={images[currentIndex]}
-          alt={`${name} - Photo ${currentIndex + 1}`}
-          className="w-full h-32 md:h-44 object-cover rounded-t-2xl md:rounded-t-lg"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.3 }}
-        />
-      </AnimatePresence>
+    <div className="relative group">
+      <div 
+        className="cursor-pointer"
+        onClick={() => onImageClick(currentIndex)}
+      >
+        <AnimatePresence mode="wait">
+          <motion.img
+            key={currentIndex}
+            src={images[currentIndex]}
+            alt={`${name} - Photo ${currentIndex + 1}`}
+            className="w-full h-32 md:h-44 object-cover rounded-t-2xl md:rounded-t-lg"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+          />
+        </AnimatePresence>
+        
+        {/* Zoom indicator */}
+        <div className="absolute inset-0 flex items-center justify-center bg-background/20 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none rounded-t-2xl md:rounded-t-lg">
+          <div className="p-3 bg-background/80 rounded-full">
+            <ZoomIn className="w-5 h-5 text-foreground" />
+          </div>
+        </div>
+      </div>
       
       {/* Navigation buttons */}
       <Button
         variant="ghost"
         size="icon"
         onClick={goToPrevious}
-        className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 bg-background/80 hover:bg-background rounded-full"
+        className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 bg-background/80 hover:bg-background rounded-full z-10"
       >
         <ChevronLeft className="h-4 w-4" />
       </Button>
@@ -125,17 +159,20 @@ function ImageSlideshow({ images, name }: { images: string[]; name: string }) {
         variant="ghost"
         size="icon"
         onClick={goToNext}
-        className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 bg-background/80 hover:bg-background rounded-full"
+        className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 bg-background/80 hover:bg-background rounded-full z-10"
       >
         <ChevronRight className="h-4 w-4" />
       </Button>
       
       {/* Image indicators */}
-      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
+      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
         {images.map((_, index) => (
           <button
             key={index}
-            onClick={() => setCurrentIndex(index)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setCurrentIndex(index);
+            }}
             className={`w-2 h-2 rounded-full transition-all ${
               index === currentIndex 
                 ? "bg-primary w-4" 
@@ -146,7 +183,7 @@ function ImageSlideshow({ images, name }: { images: string[]; name: string }) {
       </div>
       
       {/* Photo count badge */}
-      <div className="absolute top-2 left-2 px-2 py-1 bg-background/80 rounded-full text-xs text-foreground">
+      <div className="absolute top-2 left-2 px-2 py-1 bg-background/80 rounded-full text-xs text-foreground z-10">
         {currentIndex + 1} / {images.length}
       </div>
     </div>
@@ -155,6 +192,12 @@ function ImageSlideshow({ images, name }: { images: string[]; name: string }) {
 
 export function ProjectsMap() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  
+  // Lightbox state
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxImages, setLightboxImages] = useState<string[]>([]);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [lightboxProjectName, setLightboxProjectName] = useState("");
 
   const handleMarkerClick = (project: Project) => {
     setSelectedProject(project);
@@ -162,6 +205,14 @@ export function ProjectsMap() {
 
   const closeProjectDetails = () => {
     setSelectedProject(null);
+  };
+
+  const handleImageClick = (project: Project, index: number) => {
+    const images = getProjectImages(project.type, project.name, project.city);
+    setLightboxImages(images);
+    setLightboxIndex(index);
+    setLightboxProjectName(project.name);
+    setLightboxOpen(true);
   };
 
   // Main office location (Oviedo)
@@ -260,10 +311,11 @@ export function ProjectsMap() {
                         {/* Mobile drag indicator */}
                         <div className="md:hidden absolute top-2 left-1/2 -translate-x-1/2 w-10 h-1 bg-muted-foreground/30 rounded-full z-10" />
                         
-                        {/* Image Slideshow */}
+                        {/* Image Slideshow with zoom capability */}
                         <ImageSlideshow 
                           images={getProjectImages(selectedProject.type, selectedProject.name, selectedProject.city)}
                           name={selectedProject.name}
+                          onImageClick={(index) => handleImageClick(selectedProject, index)}
                         />
                         
                         <button
@@ -329,6 +381,16 @@ export function ProjectsMap() {
           ))}
         </div>
       </div>
+
+      {/* Lightbox */}
+      <ImageLightbox
+        images={lightboxImages}
+        currentIndex={lightboxIndex}
+        isOpen={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+        onNavigate={setLightboxIndex}
+        projectName={lightboxProjectName}
+      />
 
       {/* Cluster styling */}
       <style>{`

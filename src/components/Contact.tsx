@@ -14,15 +14,17 @@ const contactInfo = [{
 }, {
   icon: Phone,
   label: "Phone",
-  value: "(407) 272-9146 or (407) 738-7839",
-  href: "tel:4072729146"
+  phones: [
+    { number: "(407) 272-9146", href: "tel:4072729146" },
+    { number: "(407) 738-7839", href: "tel:4077387839" }
+  ]
 }, {
   icon: Mail,
   label: "Email",
   value: "info@contigoelectric.com",
   href: "mailto:info@contigoelectric.com"
 }];
-const services = ["Commercial Electrical", "Life Safety Systems", "Communications & Low Voltage", "Multiple Services"];
+const services = ["Commercial Electrical", "Residential Electrical", "Life Safety Systems", "Communications & Low Voltage", "Multiple Services"];
 export function Contact() {
   const {
     toast
@@ -94,9 +96,19 @@ export function Contact() {
                 </div>
                 <div>
                   <div className="text-xs md:text-sm text-muted-foreground mb-0.5 md:mb-1">{info.label}</div>
-                  {info.href ? <a href={info.href} className="text-sm md:text-base text-foreground hover:text-primary transition-colors">
+                  {'phones' in info ? (
+                    <div className="text-sm md:text-base text-foreground">
+                      <a href={info.phones[0].href} className="hover:text-primary transition-colors">{info.phones[0].number}</a>
+                      <span className="text-muted-foreground"> or </span>
+                      <a href={info.phones[1].href} className="hover:text-primary transition-colors">{info.phones[1].number}</a>
+                    </div>
+                  ) : info.href ? (
+                    <a href={info.href} className="text-sm md:text-base text-foreground hover:text-primary transition-colors">
                       {info.value}
-                    </a> : <div className="text-sm md:text-base text-foreground">{info.value}</div>}
+                    </a>
+                  ) : (
+                    <div className="text-sm md:text-base text-foreground">{info.value}</div>
+                  )}
                 </div>
               </div>)}
 

@@ -2,12 +2,7 @@ import { useEffect, useRef, useState, memo, useCallback } from "react";
 import { Building2, DollarSign, Calendar, MapPin } from "lucide-react";
 import { motion, useInView } from "framer-motion";
 
-interface StatItemProps {
-  icon: React.ReactNode;
-  value: string;
-  label: string;
-  delay: number;
-}
+// StatItemProps defined after AnimatedCounter
 
 const AnimatedCounter = memo(({ target, suffix = "", prefix = "" }: { target: number; suffix?: string; prefix?: string }) => {
   const [count, setCount] = useState(0);
@@ -51,7 +46,15 @@ const AnimatedCounter = memo(({ target, suffix = "", prefix = "" }: { target: nu
 
 AnimatedCounter.displayName = "AnimatedCounter";
 
-const StatItem = memo(({ icon, value, label, delay }: StatItemProps) => {
+interface StatItemProps {
+  icon: React.ReactNode;
+  value: string;
+  label: string;
+  delay: number;
+  onClick?: () => void;
+}
+
+const StatItem = memo(({ icon, value, label, delay, onClick }: StatItemProps) => {
   const renderCounter = useCallback(() => {
     if (value === "250+") return <AnimatedCounter target={250} suffix="+" />;
     if (value === "$100M+") return <AnimatedCounter target={100} prefix="$" suffix="M+" />;
@@ -60,13 +63,14 @@ const StatItem = memo(({ icon, value, label, delay }: StatItemProps) => {
     return value;
   }, [value]);
 
-  return (
+  const content = (
     <motion.div
       initial={{ opacity: 0, y: 30 }}
       whileInView={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, delay }}
       viewport={{ once: true }}
-      className="flex flex-col items-center text-center group"
+      className={`flex flex-col items-center text-center group ${onClick ? 'cursor-pointer' : ''}`}
+      onClick={onClick}
     >
       <div className="mb-4 p-4 rounded-full bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300 group-hover:scale-110">
         {icon}
@@ -77,8 +81,15 @@ const StatItem = memo(({ icon, value, label, delay }: StatItemProps) => {
       <div className="text-muted-foreground text-sm md:text-base uppercase tracking-widest">
         {label}
       </div>
+      {onClick && (
+        <div className="text-xs text-primary mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          Click to view map
+        </div>
+      )}
     </motion.div>
   );
+
+  return content;
 });
 
 StatItem.displayName = "StatItem";
@@ -107,6 +118,13 @@ const stats = [
 ];
 
 export const Statistics = memo(() => {
+  const scrollToMap = () => {
+    const mapSection = document.getElementById("projects");
+    if (mapSection) {
+      mapSection.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
   return (
     <section className="py-20 md:py-32 bg-secondary/50 relative overflow-hidden">
       {/* Decorative circuit pattern */}
@@ -139,6 +157,7 @@ export const Statistics = memo(() => {
               value={stat.value}
               label={stat.label}
               delay={index * 0.15}
+              onClick={stat.label === "Serving Florida Cities" ? scrollToMap : undefined}
             />
           ))}
         </div>

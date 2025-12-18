@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, MapPin, Building2 } from "lucide-react";
+import { X, MapPin, Building2, ChevronLeft, ChevronRight } from "lucide-react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { projects, type Project } from "@/data/projects";
 import { Card, CardContent } from "@/components/ui/card";
-import { getProjectImage } from "@/lib/projectImages";
+import { getProjectImage, getProjectImages } from "@/lib/projectImages";
+import { Button } from "@/components/ui/button";
 
 // Fix for default marker icons in Leaflet with Vite
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -72,6 +73,84 @@ function FlyToLocation({ project }: { project: Project | null }) {
   }
   
   return null;
+}
+
+// Image slideshow component
+function ImageSlideshow({ images, name }: { images: string[]; name: string }) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  const goToPrevious = () => {
+    setCurrentIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
+  };
+
+  const goToNext = () => {
+    setCurrentIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
+  };
+
+  if (images.length === 1) {
+    return (
+      <img
+        src={images[0]}
+        alt={name}
+        className="w-full h-32 md:h-44 object-cover rounded-t-2xl md:rounded-t-lg"
+      />
+    );
+  }
+
+  return (
+    <div className="relative">
+      <AnimatePresence mode="wait">
+        <motion.img
+          key={currentIndex}
+          src={images[currentIndex]}
+          alt={`${name} - Photo ${currentIndex + 1}`}
+          className="w-full h-32 md:h-44 object-cover rounded-t-2xl md:rounded-t-lg"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.3 }}
+        />
+      </AnimatePresence>
+      
+      {/* Navigation buttons */}
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={goToPrevious}
+        className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 bg-background/80 hover:bg-background rounded-full"
+      >
+        <ChevronLeft className="h-4 w-4" />
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={goToNext}
+        className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 bg-background/80 hover:bg-background rounded-full"
+      >
+        <ChevronRight className="h-4 w-4" />
+      </Button>
+      
+      {/* Image indicators */}
+      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
+        {images.map((_, index) => (
+          <button
+            key={index}
+            onClick={() => setCurrentIndex(index)}
+            className={`w-2 h-2 rounded-full transition-all ${
+              index === currentIndex 
+                ? "bg-primary w-4" 
+                : "bg-background/60 hover:bg-background/80"
+            }`}
+          />
+        ))}
+      </div>
+      
+      {/* Photo count badge */}
+      <div className="absolute top-2 left-2 px-2 py-1 bg-background/80 rounded-full text-xs text-foreground">
+        {currentIndex + 1} / {images.length}
+      </div>
+    </div>
+  );
 }
 
 export function ProjectsMap() {
@@ -180,14 +259,16 @@ export function ProjectsMap() {
                       <div className="relative">
                         {/* Mobile drag indicator */}
                         <div className="md:hidden absolute top-2 left-1/2 -translate-x-1/2 w-10 h-1 bg-muted-foreground/30 rounded-full z-10" />
-                        <img
-                          src={getProjectImage(selectedProject.type, selectedProject.name, selectedProject.city)}
-                          alt={selectedProject.name}
-                          className="w-full h-32 md:h-44 object-cover rounded-t-2xl md:rounded-t-lg"
+                        
+                        {/* Image Slideshow */}
+                        <ImageSlideshow 
+                          images={getProjectImages(selectedProject.type, selectedProject.name, selectedProject.city)}
+                          name={selectedProject.name}
                         />
+                        
                         <button
                           onClick={closeProjectDetails}
-                          className="absolute top-2 right-2 p-1.5 bg-background/90 rounded-full hover:bg-background transition-colors"
+                          className="absolute top-2 right-2 p-1.5 bg-background/90 rounded-full hover:bg-background transition-colors z-20"
                         >
                           <X className="w-4 h-4" />
                         </button>

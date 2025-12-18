@@ -100,7 +100,7 @@ export function ProjectsMap() {
         >
           <h2 className="font-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl text-foreground mb-4">OUR PROJECTS</h2>
           <p className="text-sm md:text-base text-muted-foreground max-w-2xl mx-auto mb-2">
-            Explore our {projects.length}+ completed projects across Central Florida. Click on any marker to view project details.
+            Explore our 250+ completed projects across Central Florida. Click on any marker to view project details.
           </p>
           <p className="text-xs md:text-sm text-primary">
             BuildZoom Score: 108 • Top 5% of Florida Licensed Contractors
@@ -229,7 +229,7 @@ export function ProjectsMap() {
         {/* Project Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mt-8 md:mt-12">
           {[
-            { value: `${projects.length}+`, label: "Projects Completed" },
+            { value: "250+", label: "Projects Completed" },
             { value: "108", label: "BuildZoom Score" },
             { value: "Top 5%", label: "FL Contractors" },
             { value: "EC13007893", label: "License Number" },

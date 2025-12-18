@@ -713,5 +713,67 @@ export const projects: Project[] = [
     state: "FL",
     location: { lat: 27.3400, lng: -82.5300, address: "Sarasota, FL" },
     image: "/placeholder.svg"
+  },
+  // Multi-Family Projects
+  {
+    id: "76",
+    name: "Celeste Hotel UCF",
+    description: "Full electrical installation for boutique hotel near UCF campus.",
+    type: "Multi-Family",
+    city: "Orlando",
+    state: "FL",
+    location: { lat: 28.6024, lng: -81.2001, address: "UCF Area, Orlando, FL" },
+    image: "/placeholder.svg"
+  },
+  {
+    id: "77",
+    name: "Palm Place Apartments",
+    description: "Multi-family residential complex electrical systems.",
+    type: "Multi-Family",
+    city: "Orlando",
+    state: "FL",
+    location: { lat: 28.5500, lng: -81.3600, address: "Orlando, FL" },
+    image: "/placeholder.svg"
+  },
+  {
+    id: "78",
+    name: "The Sevens Apartments",
+    description: "Downtown high-rise residential electrical installation.",
+    type: "Multi-Family",
+    city: "Orlando",
+    state: "FL",
+    location: { lat: 28.5421, lng: -81.3790, address: "Downtown Orlando, FL" },
+    image: "/placeholder.svg"
+  },
+  // Government & Institutional Projects
+  {
+    id: "79",
+    name: "VA Medical Center Lake Nona",
+    description: "Veterans Affairs medical facility electrical systems.",
+    type: "Government",
+    city: "Lake Nona",
+    state: "FL",
+    location: { lat: 28.3680, lng: -81.2850, address: "Lake Nona, FL" },
+    image: "/placeholder.svg"
+  },
+  {
+    id: "80",
+    name: "Sanford Orlando International Airport",
+    description: "Airport terminal electrical infrastructure.",
+    type: "Government",
+    city: "Sanford",
+    state: "FL",
+    location: { lat: 28.7776, lng: -81.2375, address: "Sanford, FL" },
+    image: "/placeholder.svg"
+  },
+  {
+    id: "81",
+    name: "Viera Middle School",
+    description: "Educational facility electrical installation.",
+    type: "Education",
+    city: "Viera",
+    state: "FL",
+    location: { lat: 28.2550, lng: -80.7300, address: "Viera, FL" },
+    image: "/placeholder.svg"
   }
 ];

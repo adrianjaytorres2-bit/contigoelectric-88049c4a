@@ -221,6 +221,36 @@ const projectImageMap: Record<string, string> = {
   "versace": versaceVineland,
 };
 
+// Multi-image mapping for projects with multiple photos
+const projectMultiImageMap: Record<string, string[]> = {
+  "clean juice": [cleanJuice1, cleanJuice2, cleanJuice3],
+  "chronic taco": [chronicTaco1, chronicTaco2],
+  "aldo": [aldoMilleniaMall, aldoMilleniaMall2],
+  "christian louboutin": [christianLouboutinMillenia, christianLouboutinMillenia2],
+  "cora": [coraPhysicalTherapy, coraPhysicalTherapy2],
+  "ghirardelli": [ghirardelliDisneySprings, ghirardelliDisneySprings2],
+  "hot topic": [hotTopicAltamonte, hotTopicAltamonte2],
+  "hublot": [hublotMilleniaMall, hublotMilleniaMall2],
+  "jeremiah": [jeremiahsStCloud, jeremiahsStCloud2],
+  "uniqlo": [uniqloFloridaMall, uniqloFloridaMall2],
+  "venetian": [venetianNailSpaJacksonville, venetianNailSpaJacksonville2],
+};
+
+// Get all images for a project (returns array)
+export const getProjectImages = (type: string, name: string, city?: string): string[] => {
+  const nameLower = name.toLowerCase();
+  
+  // Check for multi-image projects first
+  for (const [key, images] of Object.entries(projectMultiImageMap)) {
+    if (nameLower.includes(key)) {
+      return images;
+    }
+  }
+  
+  // Return single image as array
+  return [getProjectImage(type, name, city)];
+};
+
 // Get project image based on name and type
 export const getProjectImage = (type: string, name: string, city?: string): string => {
   const nameLower = name.toLowerCase();
@@ -259,7 +289,7 @@ export const getProjectImage = (type: string, name: string, city?: string): stri
   if (type === "Retail") {
     return projectRetail;
   }
-  if (type === "Commercial" || type === "Financial" || type === "Medical") {
+  if (type === "Commercial" || type === "Financial" || type === "Medical" || type === "Multi-Family" || type === "Government" || type === "Education") {
     return projectCommercial;
   }
   

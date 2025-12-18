@@ -14,7 +14,7 @@ const contactInfo = [{
 }, {
   icon: Phone,
   label: "Phone",
-  value: "(407) 272-9146",
+  value: "(407) 272-9146 or (407) 738-7839",
   href: "tel:4072729146"
 }, {
   icon: Mail,

@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect, memo } from "react";
+import { motion } from "framer-motion";
 import { ChevronRight, ChevronDown, Shield, Clock, Award, DollarSign } from "lucide-react";
 
 import projectRestaurant from "@/assets/project-restaurant.jpeg";
@@ -21,6 +21,29 @@ const features = [
   { icon: DollarSign, title: "COMPETITIVE PRICING", desc: "High-quality work with transparent, fair pricing" },
 ];
 
+// Preload images for smoother transitions
+heroImages.forEach((src) => {
+  const img = new Image();
+  img.src = src;
+});
+
+const FeatureCard = memo(({ feature, index }: { feature: typeof features[0]; index: number }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.5, delay: 1 + index * 0.1 }}
+    className="flex flex-col sm:flex-row items-center sm:items-start gap-2 sm:gap-4 p-3 md:p-4 text-center sm:text-left"
+  >
+    <feature.icon className="w-6 h-6 md:w-8 md:h-8 text-primary flex-shrink-0" />
+    <div>
+      <h3 className="font-display text-sm md:text-lg text-foreground">{feature.title}</h3>
+      <p className="text-xs md:text-sm text-muted-foreground hidden sm:block">{feature.desc}</p>
+    </div>
+  </motion.div>
+));
+
+FeatureCard.displayName = "FeatureCard";
+
 export function Hero() {
   const [currentImage, setCurrentImage] = useState(0);
 
@@ -41,24 +64,22 @@ export function Hero() {
 
   return (
     <section className="relative min-h-screen flex flex-col">
-      {/* Background Images */}
+      {/* Background Images - CSS transitions instead of AnimatePresence */}
       <div className="absolute inset-0">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={currentImage}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 1 }}
-            className="absolute inset-0"
+        {heroImages.map((src, index) => (
+          <div
+            key={index}
+            className="absolute inset-0 transition-opacity duration-1000"
+            style={{ opacity: index === currentImage ? 1 : 0 }}
           >
             <img
-              src={heroImages[currentImage]}
+              src={src}
               alt="Electrical work"
               className="w-full h-full object-cover"
+              loading={index === 0 ? "eager" : "lazy"}
             />
-          </motion.div>
-        </AnimatePresence>
+          </div>
+        ))}
         <div className="absolute inset-0 hero-overlay" />
       </div>
 
@@ -129,19 +150,7 @@ export function Hero() {
         <div className="container mx-auto px-4 py-6 md:py-8">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             {features.map((feature, index) => (
-              <motion.div
-                key={feature.title}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 1 + index * 0.1 }}
-                className="flex flex-col sm:flex-row items-center sm:items-start gap-2 sm:gap-4 p-3 md:p-4 text-center sm:text-left"
-              >
-                <feature.icon className="w-6 h-6 md:w-8 md:h-8 text-primary flex-shrink-0" />
-                <div>
-                  <h3 className="font-display text-sm md:text-lg text-foreground">{feature.title}</h3>
-                  <p className="text-xs md:text-sm text-muted-foreground hidden sm:block">{feature.desc}</p>
-                </div>
-              </motion.div>
+              <FeatureCard key={feature.title} feature={feature} index={index} />
             ))}
           </div>
         </div>

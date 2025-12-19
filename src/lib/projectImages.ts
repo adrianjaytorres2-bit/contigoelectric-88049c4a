@@ -77,6 +77,15 @@ import sanfordAirport1 from "@/assets/projects/sanford-airport-1.png";
 import sanfordAirport2 from "@/assets/projects/sanford-airport-2.jpg";
 import sanfordAirport3 from "@/assets/projects/sanford-airport-3.jpg";
 import vieraMiddleSchool from "@/assets/projects/viera-middle-school.png";
+import blueOrigin1 from "@/assets/projects/blue-origin-1.webp";
+import blueOrigin2 from "@/assets/projects/blue-origin-2.webp";
+import blueOrigin3 from "@/assets/projects/blue-origin-3.jpeg";
+
+// Multi-Family additional images
+import marriottOrlando1 from "@/assets/projects/marriott-orlando-1.jpeg";
+import marriottOrlando2 from "@/assets/projects/marriott-orlando-2.webp";
+import marriottOrlando3 from "@/assets/projects/marriott-orlando-3.png";
+import marriottOrlando4 from "@/assets/projects/marriott-orlando-4.webp";
 
 // Fallback images for categories (existing assets)
 import projectGucci from "@/assets/project-gucci.jpeg";
@@ -216,6 +225,14 @@ const projectImageMap: Record<string, string> = {
   "viera middle": vieraMiddleSchool,
   "viera school": vieraMiddleSchool,
 
+  // Blue Origin
+  "blue origin": blueOrigin1,
+
+  // Marriott Downtown Orlando
+  "marriott downtown orlando": marriottOrlando1,
+  "marriott downtown": marriottOrlando1,
+  "marriott orlando": marriottOrlando1,
+
   // Pizza Hut
   "pizza hut": pizzaHutLakeland,
   
@@ -279,6 +296,11 @@ const projectMultiImageMap: Record<string, string[]> = {
   // Government & Institutional projects
   "sanford orlando": [sanfordAirport1, sanfordAirport2, sanfordAirport3],
   "sanford airport": [sanfordAirport1, sanfordAirport2, sanfordAirport3],
+  "blue origin": [blueOrigin1, blueOrigin2, blueOrigin3],
+  // Multi-Family additional
+  "marriott downtown orlando": [marriottOrlando1, marriottOrlando2, marriottOrlando3, marriottOrlando4],
+  "marriott downtown": [marriottOrlando1, marriottOrlando2, marriottOrlando3, marriottOrlando4],
+  "marriott orlando": [marriottOrlando1, marriottOrlando2, marriottOrlando3, marriottOrlando4],
 };
 
 // Get all images for a project (returns array)

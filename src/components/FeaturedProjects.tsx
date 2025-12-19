@@ -19,12 +19,14 @@ const luxuryRetailNames = [
 const multiFamilyNames = [
   "Celeste Hotel UCF",
   "Palm Place Apartments",
-  "The Sevens Apartments"
+  "The Sevens Apartments",
+  "Marriott Downtown Orlando"
 ];
 
 const governmentNames = [
   "Sanford Orlando International Airport",
-  "Viera Middle School"
+  "Viera Middle School",
+  "Blue Origin"
 ];
 
 // Get projects by name list

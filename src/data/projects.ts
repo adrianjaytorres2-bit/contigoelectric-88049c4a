@@ -765,5 +765,25 @@ export const projects: Project[] = [
     state: "FL",
     location: { lat: 28.2550, lng: -80.7300, address: "Viera, FL" },
     image: "/placeholder.svg"
+  },
+  {
+    id: "82",
+    name: "Blue Origin",
+    description: "Complete electrical installation for aerospace facility.",
+    type: "Government",
+    city: "Cape Canaveral",
+    state: "FL",
+    location: { lat: 28.4892, lng: -80.5772, address: "Cape Canaveral, FL" },
+    image: "/placeholder.svg"
+  },
+  {
+    id: "83",
+    name: "Marriott Downtown Orlando",
+    description: "Full electrical installation for luxury hotel.",
+    type: "Multi-Family",
+    city: "Orlando",
+    state: "FL",
+    location: { lat: 28.5421, lng: -81.3789, address: "Downtown Orlando, FL" },
+    image: "/placeholder.svg"
   }
 ];

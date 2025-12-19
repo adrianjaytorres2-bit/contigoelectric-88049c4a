@@ -1,17 +1,17 @@
-import { useState, useEffect, memo } from "react";
+import { memo } from "react";
 import { motion } from "framer-motion";
 import { ChevronRight, ChevronDown, Shield, Clock, Award, DollarSign } from "lucide-react";
 
-import projectRestaurant from "@/assets/project-restaurant.jpeg";
-import projectRetail from "@/assets/project-retail.jpeg";
-import projectGucci from "@/assets/project-gucci.jpeg";
-import projectElectrical from "@/assets/project-electrical.jpeg";
+import blueOrigin1 from "@/assets/projects/blue-origin-1.webp";
+import celesteShowcase1 from "@/assets/projects/celeste-hotel-showcase-1.jpg";
+import celesteShowcase2 from "@/assets/projects/celeste-hotel-showcase-2.jpg";
+import marriottShowcase from "@/assets/projects/marriott-showcase.jpg";
 
-const heroImages = [
-  projectRestaurant,
-  projectRetail,
-  projectGucci,
-  projectElectrical,
+const showcaseImages = [
+  { src: blueOrigin1, alt: "Blue Origin Aerospace Facility" },
+  { src: marriottShowcase, alt: "Marriott Downtown Orlando" },
+  { src: celesteShowcase1, alt: "Celeste Hotel UCF Aerial" },
+  { src: celesteShowcase2, alt: "Celeste Hotel UCF Entrance" },
 ];
 
 const features = [
@@ -20,12 +20,6 @@ const features = [
   { icon: Award, title: "SAFETY-DRIVEN", desc: "Fully compliant with all state, federal, and jobsite safety standards" },
   { icon: DollarSign, title: "COMPETITIVE PRICING", desc: "High-quality work with transparent, fair pricing" },
 ];
-
-// Preload images for smoother transitions
-heroImages.forEach((src) => {
-  const img = new Image();
-  img.src = src;
-});
 
 const FeatureCard = memo(({ feature, index }: { feature: typeof features[0]; index: number }) => (
   <motion.div
@@ -45,15 +39,6 @@ const FeatureCard = memo(({ feature, index }: { feature: typeof features[0]; ind
 FeatureCard.displayName = "FeatureCard";
 
 export function Hero() {
-  const [currentImage, setCurrentImage] = useState(0);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentImage((prev) => (prev + 1) % heroImages.length);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
   const scrollToContact = () => {
     document.querySelector("#contact")?.scrollIntoView({ behavior: "smooth" });
   };
@@ -64,21 +49,23 @@ export function Hero() {
 
   return (
     <section className="relative min-h-screen flex flex-col">
-      {/* Background Images - CSS transitions instead of AnimatePresence */}
-      <div className="absolute inset-0">
-        {heroImages.map((src, index) => (
-          <div
+      {/* Background - 4 Image Grid */}
+      <div className="absolute inset-0 grid grid-cols-2 grid-rows-2">
+        {showcaseImages.map((image, index) => (
+          <motion.div
             key={index}
-            className="absolute inset-0 transition-opacity duration-1000"
-            style={{ opacity: index === currentImage ? 1 : 0 }}
+            initial={{ opacity: 0, scale: 1.1 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 1, delay: index * 0.15 }}
+            className="relative overflow-hidden"
           >
             <img
-              src={src}
-              alt="Electrical work"
+              src={image.src}
+              alt={image.alt}
               className="w-full h-full object-cover"
               loading={index === 0 ? "eager" : "lazy"}
             />
-          </div>
+          </motion.div>
         ))}
         <div className="absolute inset-0 hero-overlay" />
       </div>
@@ -119,19 +106,6 @@ export function Hero() {
           <span className="text-xs sm:text-sm tracking-widest font-medium">REQUEST A PROPOSAL</span>
           <ChevronRight className="w-4 h-4 md:w-5 md:h-5 group-hover:translate-x-1 transition-transform" />
         </motion.button>
-
-        {/* Image Indicators */}
-        <div className="flex gap-2 mt-8 md:mt-12">
-          {heroImages.map((_, index) => (
-            <button
-              key={index}
-              onClick={() => setCurrentImage(index)}
-              className={`h-1 transition-all duration-300 ${
-                index === currentImage ? "w-6 md:w-8 bg-primary" : "w-3 md:w-4 bg-foreground/30"
-              }`}
-            />
-          ))}
-        </div>
 
         {/* Scroll Indicator */}
         <motion.button

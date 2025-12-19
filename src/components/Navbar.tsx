@@ -54,7 +54,7 @@ export function Navbar() {
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
           <Link to="/" className="flex items-center">
-            <img src={logo} alt="Contigo Electric Inc." className="h-12 w-auto" />
+            <img src={logo} alt="Contigo Electric Inc." className="h-24 w-auto" />
           </Link>
 
           {/* Desktop Navigation */}

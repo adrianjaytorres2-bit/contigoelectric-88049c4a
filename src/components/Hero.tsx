@@ -2,13 +2,13 @@ import { useState, useEffect, memo } from "react";
 import { motion } from "framer-motion";
 import { ChevronRight, ChevronDown, Shield, Clock, Award, DollarSign } from "lucide-react";
 
-import blueOrigin1 from "@/assets/projects/blue-origin-1.webp";
+import gucciMillenia from "@/assets/projects/gucci-millenia.webp";
 import celesteShowcase1 from "@/assets/projects/celeste-hotel-showcase-1.jpg";
 import celesteShowcase2 from "@/assets/projects/celeste-hotel-showcase-2.jpg";
 import marriottShowcase from "@/assets/projects/marriott-showcase.jpg";
 
 const heroImages = [
-  blueOrigin1,
+  gucciMillenia,
   marriottShowcase,
   celesteShowcase1,
   celesteShowcase2,
@@ -107,7 +107,7 @@ export function Hero() {
           transition={{ duration: 0.8, delay: 0.6 }}
           className="mt-4 md:mt-6 text-base md:text-xl text-muted-foreground max-w-2xl px-2"
         >
-          A Full-Service Commercial Electrical Contractor with Comprehensive Projects Across Central Florida.
+          A Full-Service Commercial Electrical Contractor with Comprehensive Projects Across the State of Florida.
         </motion.p>
         <motion.button
           initial={{ opacity: 0, y: 20 }}

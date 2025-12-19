@@ -230,7 +230,7 @@ export function ProjectsMap() {
         >
           <h2 className="font-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl text-foreground mb-4">OUR PROJECTS</h2>
           <p className="text-sm md:text-base text-muted-foreground max-w-2xl mx-auto mb-2">
-            Explore our 250+ completed projects across Central Florida. Click on any marker to view project details.
+            Explore our 250+ completed projects across the state of Florida. Click on any marker to view project details.
           </p>
           <p className="text-xs md:text-sm text-primary">
             BuildZoom Score: 108 • Top 5% of Florida Licensed Contractors

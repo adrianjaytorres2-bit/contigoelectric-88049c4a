@@ -9,7 +9,7 @@ import {
 const faqs = [
   {
     question: "What areas do you serve?",
-    answer: "We serve all of Central Florida, including Orlando, Tampa, Jacksonville, Ft. Lauderdale, and surrounding areas. With 250+ completed projects across 400+ Florida cities, we have the reach and expertise to handle projects throughout the state."
+    answer: "We serve all of Florida, including Orlando, Tampa, Jacksonville, Ft. Lauderdale, and surrounding areas. With 250+ completed projects across 400+ Florida cities, we have the reach and expertise to handle projects throughout the state."
   },
   {
     question: "Are you licensed and insured?",

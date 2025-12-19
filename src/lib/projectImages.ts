@@ -1,6 +1,6 @@
 // Project images mapping - imports all uploaded project photos
+import sevenEleven from "@/assets/projects/7-eleven.webp";
 import sevenElevenDavenport from "@/assets/projects/7-eleven-davenport.webp";
-import sevenElevenSebastian from "@/assets/projects/7-eleven-sebastian.webp";
 import aceCafeOrlando from "@/assets/projects/ace-cafe-orlando.webp";
 import aldoMilleniaMall from "@/assets/projects/aldo-millenia-mall.webp";
 import aldoMilleniaMall2 from "@/assets/projects/aldo-millenia-mall-2.webp";
@@ -96,9 +96,10 @@ import projectElectrical from "@/assets/project-electrical.jpeg";
 
 // Direct mapping by project name (case-insensitive matching)
 const projectImageMap: Record<string, string> = {
-  // 7-Eleven locations
-  "7-eleven davenport": sevenElevenDavenport,
-  "7-eleven sebastian": sevenElevenSebastian,
+  // 7-Eleven locations - all use the same image
+  "7-eleven": sevenEleven,
+  "7-eleven davenport": sevenEleven,
+  "7-eleven sebastian": sevenEleven,
   
   // Ace Cafe
   "ace café": aceCafeOrlando,
@@ -337,10 +338,10 @@ export const getProjectImage = (type: string, name: string, city?: string): stri
         return tropicalSmoothieBradenton;
       }
       if (key === "7-eleven" && cityLower.includes("davenport")) {
-        return sevenElevenDavenport;
+        return sevenEleven;
       }
       if (key === "7-eleven" && cityLower.includes("sebastian")) {
-        return sevenElevenSebastian;
+        return sevenEleven;
       }
       return image;
     }
@@ -365,8 +366,8 @@ export const getProjectImage = (type: string, name: string, city?: string): stri
 
 // Export individual images for direct use if needed
 export {
+  sevenEleven,
   sevenElevenDavenport,
-  sevenElevenSebastian,
   aceCafeOrlando,
   aldoMilleniaMall,
   aritziaInternationalMall,

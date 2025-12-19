@@ -2,13 +2,11 @@ import { useState, useEffect, memo } from "react";
 import { motion } from "framer-motion";
 import { ChevronRight, ChevronDown, Shield, Clock, Award, DollarSign } from "lucide-react";
 
-import gucciMillenia from "@/assets/projects/gucci-millenia.webp";
 import celesteShowcase1 from "@/assets/projects/celeste-hotel-showcase-1.jpg";
 import celesteShowcase2 from "@/assets/projects/celeste-hotel-showcase-2.jpg";
 import marriottShowcase from "@/assets/projects/marriott-showcase.jpg";
 
 const heroImages = [
-  gucciMillenia,
   marriottShowcase,
   celesteShowcase1,
   celesteShowcase2,

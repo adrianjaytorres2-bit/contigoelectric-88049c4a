@@ -5,13 +5,11 @@ import { ChevronRight, ChevronDown, Shield, Clock, Award, DollarSign } from "luc
 import celesteShowcase1 from "@/assets/projects/celeste-hotel-showcase-1.jpg";
 import celesteShowcase2 from "@/assets/projects/celeste-hotel-showcase-2.jpg";
 import marriottShowcase from "@/assets/projects/marriott-showcase.jpg";
-import blueOrigin1 from "@/assets/projects/blue-origin-1.webp";
 
 const heroImages = [
   marriottShowcase,
   celesteShowcase1,
   celesteShowcase2,
-  blueOrigin1,
 ];
 
 const features = [

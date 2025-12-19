@@ -98,7 +98,7 @@ const stats = [
   {
     icon: <Building2 className="w-8 h-8" />,
     value: "250+",
-    label: "Projects Completed",
+    label: "Projects Completed by Our Teams Combined Experience",
   },
   {
     icon: <DollarSign className="w-8 h-8" />,

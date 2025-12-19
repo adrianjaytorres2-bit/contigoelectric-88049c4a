@@ -139,11 +139,23 @@ const ProjectRow = ({ title, subtitle, projects: rowProjects, delay = 0, onProje
               
               {/* Background image */}
               <div className="absolute inset-0">
-                <img 
-                  src={getProjectImage(project.type, project.name, project.city)} 
-                  alt={project.name}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
+                {(() => {
+                  const imageUrl = getProjectImage(project.type, project.name, project.city);
+                  if (imageUrl) {
+                    return (
+                      <img 
+                        src={imageUrl} 
+                        alt={project.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                    );
+                  }
+                  return (
+                    <div className="w-full h-full bg-muted flex items-center justify-center">
+                      <span className="text-muted-foreground text-sm">No Picture</span>
+                    </div>
+                  );
+                })()}
               </div>
               
               {/* Content */}

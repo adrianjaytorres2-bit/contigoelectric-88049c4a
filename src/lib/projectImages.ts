@@ -304,7 +304,7 @@ const projectMultiImageMap: Record<string, string[]> = {
   "marriott orlando": [marriottOrlando1, marriottOrlando2, marriottOrlando3, marriottOrlando4],
 };
 
-// Get all images for a project (returns array)
+// Get all images for a project (returns array, empty if no images)
 export const getProjectImages = (type: string, name: string, city?: string): string[] => {
   const nameLower = name.toLowerCase();
   
@@ -315,12 +315,13 @@ export const getProjectImages = (type: string, name: string, city?: string): str
     }
   }
   
-  // Return single image as array
-  return [getProjectImage(type, name, city)];
+  // Return single image as array, or empty array if no image
+  const singleImage = getProjectImage(type, name, city);
+  return singleImage ? [singleImage] : [];
 };
 
-// Get project image based on name and type
-export const getProjectImage = (type: string, name: string, city?: string): string => {
+// Get project image based on name and type - returns null if no image found
+export const getProjectImage = (type: string, name: string, city?: string): string | null => {
   const nameLower = name.toLowerCase();
   const cityLower = city?.toLowerCase() || "";
   
@@ -347,21 +348,8 @@ export const getProjectImage = (type: string, name: string, city?: string): stri
     }
   }
   
-  // Fallback to category-based images
-  if (type === "Luxury Retail") {
-    return projectGucci;
-  }
-  if (type === "Restaurant" || type === "Fitness" || type === "Wellness") {
-    return projectRestaurant;
-  }
-  if (type === "Retail") {
-    return projectRetail;
-  }
-  if (type === "Commercial" || type === "Financial" || type === "Medical" || type === "Multi-Family" || type === "Government" || type === "Education") {
-    return projectCommercial;
-  }
-  
-  return projectElectrical;
+  // No fallback - return null if no image found
+  return null;
 };
 
 // Export individual images for direct use if needed

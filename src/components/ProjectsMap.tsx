@@ -98,6 +98,15 @@ function ImageSlideshow({
     setCurrentIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
   };
 
+  // No images available
+  if (images.length === 0) {
+    return (
+      <div className="w-full h-32 md:h-44 bg-muted rounded-t-2xl md:rounded-t-lg flex items-center justify-center">
+        <span className="text-muted-foreground text-sm">No Picture</span>
+      </div>
+    );
+  }
+
   if (images.length === 1) {
     return (
       <div 

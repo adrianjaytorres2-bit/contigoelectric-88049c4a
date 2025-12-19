@@ -735,16 +735,6 @@ export const projects: Project[] = [
     location: { lat: 28.5500, lng: -81.3600, address: "Orlando, FL" },
     image: "/placeholder.svg"
   },
-  {
-    id: "78",
-    name: "The Sevens Apartments",
-    description: "Downtown high-rise residential electrical installation.",
-    type: "Multi-Family",
-    city: "Orlando",
-    state: "FL",
-    location: { lat: 28.5421, lng: -81.3790, address: "Downtown Orlando, FL" },
-    image: "/placeholder.svg"
-  },
   // Government & Institutional Projects
   {
     id: "80",

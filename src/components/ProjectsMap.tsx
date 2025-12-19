@@ -269,13 +269,6 @@ export function ProjectsMap() {
                 showCoverageOnHover={false}
                 zoomToBoundsOnClick={true}
               >
-                {/* Main office marker (red) */}
-                <Marker position={[mainOffice.lat, mainOffice.lng]} icon={redMarkerIcon}>
-                  <Popup>
-                    <div className="text-sm font-semibold">Contigo Electric HQ</div>
-                    <div className="text-xs text-gray-500">Oviedo, FL</div>
-                  </Popup>
-                </Marker>
 
                 {/* Project Markers (blue) */}
                 {projects.map((project) => (
@@ -347,10 +340,6 @@ export function ProjectsMap() {
 
             {/* Legend - hidden on mobile when project selected */}
             <div className={`absolute bottom-4 right-4 bg-card/90 backdrop-blur-md rounded-lg p-2 md:p-3 border border-border shadow-lg z-[999] ${selectedProject ? 'hidden md:block' : ''}`}>
-              <div className="flex items-center gap-2 mb-1">
-                <img src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png" alt="HQ" className="w-3 h-5" />
-                <span className="text-[10px] md:text-xs text-foreground">Headquarters</span>
-              </div>
               <div className="flex items-center gap-2">
                 <img src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png" alt="Project" className="w-3 h-5" />
                 <span className="text-[10px] md:text-xs text-foreground">Project Location</span>

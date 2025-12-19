@@ -148,7 +148,7 @@ export function Contact() {
                 License: EC13007893 • Certified Electrical Contractor
               </p>
               <p className="text-xs md:text-sm text-muted-foreground">
-                Serving Central Florida since 2018
+                Serving across the state of Florida since 2017
               </p>
             </div>
           </motion.div>

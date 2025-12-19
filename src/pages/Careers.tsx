@@ -58,48 +58,13 @@ export default function Careers() {
               JOIN OUR TEAM
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
-              Build your career with Central Florida's trusted commercial electrical contractor. 
+              Build your career with Florida's trusted commercial electrical contractor. 
               We're always looking for talented electricians to join the Contigo Electric family.
             </p>
           </motion.div>
         </div>
       </section>
 
-      {/* Benefits Section */}
-      <section className="py-16 md:py-20">
-        <div className="container mx-auto px-4">
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="font-display text-3xl md:text-4xl text-foreground text-center mb-12"
-          >
-            WHY WORK WITH US
-          </motion.h2>
-          
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {benefits.map((benefit, index) => (
-              <motion.div
-                key={benefit.title}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-              >
-                <Card className="h-full bg-card border-border hover:border-primary/30 transition-colors text-center">
-                  <CardContent className="p-6">
-                    <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-primary/20 flex items-center justify-center">
-                      <benefit.icon className="w-7 h-7 text-primary" />
-                    </div>
-                    <h3 className="font-display text-lg text-foreground mb-2">{benefit.title}</h3>
-                    <p className="text-sm text-muted-foreground">{benefit.description}</p>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* Contact Section */}
       <section className="py-16 md:py-24 bg-card">
@@ -123,11 +88,11 @@ export default function Careers() {
             </p>
             
             <a
-              href="mailto:employment@contigoelectric.com"
+              href="mailto:davidmichael@contigoelectric.com"
               className="inline-flex items-center gap-3 px-8 py-4 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-lg font-medium"
             >
               <Mail className="w-5 h-5" />
-              employment@contigoelectric.com
+              davidmichael@contigoelectric.com
             </a>
             
             <p className="mt-6 text-sm text-muted-foreground">

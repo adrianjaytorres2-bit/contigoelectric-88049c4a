@@ -40,7 +40,7 @@ export function Services() {
         >
           <h2 className="font-display text-3xl sm:text-5xl md:text-6xl text-foreground mb-3 md:mb-4">OUR SERVICES</h2>
           <p className="text-sm md:text-base text-muted-foreground max-w-2xl mx-auto px-2">
-            Comprehensive electrical solutions for commercial and industrial facilities across Central Florida.
+            Comprehensive electrical solutions for commercial and industrial facilities across the state of Florida.
             <span className="block mt-2 text-xs md:text-sm">We also welcome residential projects—no job is too small.</span>
           </p>
         </motion.div>

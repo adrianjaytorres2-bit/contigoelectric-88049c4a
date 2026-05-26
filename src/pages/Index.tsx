@@ -11,10 +11,12 @@ import { FAQ } from "@/components/FAQ";
 import { Contact } from "@/components/Contact";
 import { Footer } from "@/components/Footer";
 import { BackToTop } from "@/components/BackToTop";
+import { TouchLight } from "@/components/TouchLight";
 
 const Index = () => {
   return (
     <>
+      <TouchLight />
       <header>
         <Navbar />
       </header>

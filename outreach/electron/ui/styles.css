@@ -166,6 +166,29 @@ nav { display: flex; flex-direction: column; gap: 4px; }
 .chip:hover { color: var(--text); }
 .chip.active { background: rgba(245,165,36,0.14); color: var(--accent-2); border-color: rgba(245,165,36,0.4); }
 
+/* find leads */
+.leadgen-form {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 20px 22px;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px 22px; margin-bottom: 14px;
+}
+.leadgen-form label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--muted); }
+.leadgen-form label.check { flex-direction: row; align-items: center; gap: 9px; grid-column: 1 / -1; color: var(--text); font-size: 14px; }
+.leadgen-form input[type="text"], .leadgen-form input:not([type]), .leadgen-form input[type="number"] {
+  background: #0e131b; color: var(--text);
+  border: 1px solid var(--border); border-radius: 7px;
+  padding: 9px 11px; font-size: 14px;
+}
+.leadgen-form input:focus { outline: none; border-color: var(--accent); }
+.leadgen-form input[type="checkbox"] { width: 17px; height: 17px; accent-color: var(--accent); }
+.leadgen-form #btn-findleads { grid-column: 1 / -1; justify-self: start; }
+#lg-console {
+  padding: 12px 16px; height: 180px; overflow-y: auto;
+  font-family: "Cascadia Code", Consolas, monospace;
+  font-size: 12.5px; line-height: 1.55; color: #9fd48a; white-space: pre-wrap; word-break: break-word;
+}
+.hint { color: var(--muted); font-size: 13px; line-height: 1.6; margin-bottom: 14px; }
+
 /* guide */
 .guide-card {
   background: var(--panel); border: 1px solid var(--border);

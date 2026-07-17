@@ -7,6 +7,7 @@ import { auditSites } from "./audit.js";
 import { draftEmail, draftFollowup, classifyReply } from "./writer.js";
 import { transport, sendEmail, sleep, sentToday } from "./sender.js";
 import { fetchReplies } from "./inbox.js";
+import { findLeads } from "./leadgen.js";
 import { writeReport } from "./report.js";
 
 const { STATUS } = store;
@@ -121,9 +122,16 @@ async function main() {
       const dryRun = args.includes("--dry-run");
       const drafted = store.leadsByStatus(db, STATUS.DRAFTED);
       if (!drafted.length) return console.log("Nothing to send. Run `draft` first.");
+      const sendable = drafted.filter((l) => l.email);
+      const missing = drafted.length - sendable.length;
+      if (missing)
+        console.log(
+          `${missing} drafted lead(s) have no email address — skipping them. Add an email to those leads to reach them.`
+        );
+      if (!sendable.length) return console.log("No drafted leads have an email address to send to.");
       const budget = config.dailySendCap - sentToday(db);
       if (budget <= 0) return console.log("Daily send cap reached. Try again tomorrow.");
-      const batch = drafted.slice(0, budget);
+      const batch = sendable.slice(0, budget);
       const t = dryRun ? null : transport();
       for (const lead of batch) {
         if (dryRun) {
@@ -223,6 +231,49 @@ async function main() {
       break;
     }
 
+    case "findleads": {
+      const query = args[0];
+      const location = args[1];
+      if (!query || !location)
+        die('usage: outreach findleads "<business type>" "<location>" [--limit N] [--no-scrape]');
+      const limit = Number(flag(args, "--limit") || 50);
+      const scrapeEmails = !args.includes("--no-scrape");
+      const results = await findLeads({ query, location, limit, scrapeEmails }, (msg) =>
+        console.log(msg)
+      );
+      let added = 0,
+        dupe = 0;
+      for (const r of results) {
+        const website = store.normalizeUrl(r.website);
+        if (!r.email && !website) continue;
+        const id = store.leadId(r.email, website);
+        if (db.leads[id]) {
+          dupe++;
+          continue;
+        }
+        db.leads[id] = {
+          id,
+          name: r.name,
+          email: r.email || "",
+          company: r.company,
+          website,
+          industry: query,
+          phone: r.phone || "",
+          status: STATUS.NEW,
+          importedAt: new Date().toISOString(),
+          source: "leadgen",
+          followups: [],
+        };
+        added++;
+      }
+      store.save(db);
+      const withEmail = results.filter((r) => r.email).length;
+      console.log(
+        `Added ${added} new lead(s) (${dupe} already in your list). ${withEmail} have an email; the rest have a website you can audit and add an email to later.`
+      );
+      break;
+    }
+
     case "override": {
       // Re-queue skipped leads so they get sent anyway. Only leads that already
       // have a written draft can be overridden (quality-threshold skips); leads
@@ -276,6 +327,8 @@ async function main() {
 
 Usage:
   outreach import <leads.csv>      Import leads (columns: name,email,company,website[,industry,language])
+  outreach findleads "<type>" "<location>" [--limit N] [--no-scrape]
+                                   Generate leads from OpenStreetMap (free) — e.g. "plumber" "Tampa, FL"
   outreach audit [--limit N]       Audit websites of new leads in headless Chromium
   outreach draft [--limit N]       Write personalized emails with Claude for audited leads
   outreach preview [email]         Show drafted emails before sending

@@ -17,6 +17,17 @@ npm run dist:win   # build installer + portable .exe into outreach/release/
 
 First-time app setup: open **Settings**, fill in your name/pitch, Anthropic API key, and SMTP details, click **Install audit browser** once, then **Save**. The status dots in the sidebar turn green as each piece is configured.
 
+## Find Leads (free lead generation)
+
+The **Find Leads** page generates a lead list from **OpenStreetMap** — no API key, no credits. Enter a business type (e.g. `plumber`) and a location (e.g. `Tampa, FL`), and it pulls matching businesses (name, website, phone, and any listed email) via Nominatim + Overpass, optionally scanning each site's contact page for an email. Results drop straight into your Leads list, ready to audit.
+
+CLI equivalent:
+```sh
+node src/cli.js findleads "roofing" "Miami, FL" --limit 50        # scan sites for emails
+node src/cli.js findleads "dentist" "Austin, TX" --no-scrape      # faster, OSM data only
+```
+Coverage varies by area (it's community-mapped data), so try a few wordings if results are thin. Businesses without a public email still import with their website — you can audit them and add an email later.
+
 ## CLI (same engine, no UI)
 
 A self-hosted clone of [swokei.com](https://www.swokei.com/)'s core workflow: audit prospects' real websites, write personalized cold emails that reference actual flaws found, send them from your own address, follow up automatically, and sort replies by intent.

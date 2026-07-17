@@ -17,23 +17,28 @@ document.addEventListener("click", (e) => {
 
 // ---------- console log ----------
 const consoleEl = $("#console");
-window.outreach.onLog((chunk) => {
-  consoleEl.textContent += chunk;
-  consoleEl.scrollTop = consoleEl.scrollHeight;
-});
+// Mirror engine output to the dashboard log and (when present) the Find Leads log.
+function appendLog(text) {
+  for (const el of [consoleEl, $("#lg-console")]) {
+    if (el) {
+      el.textContent += text;
+      el.scrollTop = el.scrollHeight;
+    }
+  }
+}
+window.outreach.onLog((chunk) => appendLog(chunk));
 window.outreach.onDone(() => refresh());
 $("#btn-clear-log").addEventListener("click", () => (consoleEl.textContent = ""));
 
 function log(line) {
-  consoleEl.textContent += line + "\n";
-  consoleEl.scrollTop = consoleEl.scrollHeight;
+  appendLog(line + "\n");
 }
 
 // ---------- actions ----------
 const actionButtons = [
   "#btn-import", "#btn-import-2", "#btn-audit", "#btn-draft",
   "#btn-send", "#btn-send-dry", "#btn-followup", "#btn-inbox", "#btn-report",
-  "#btn-install-browser",
+  "#btn-install-browser", "#btn-override", "#btn-findleads",
 ];
 function setBusy(busy) {
   actionButtons.forEach((sel) => { const b = $(sel); if (b) b.disabled = busy; });
@@ -73,6 +78,21 @@ $("#btn-install-browser").addEventListener("click", () =>
 $("#btn-override").addEventListener("click", () => {
   if (!confirm("Re-queue all skipped leads (that have a draft) so they send on the next Send?")) return;
   runAction("Overriding skipped leads…", () => window.outreach.runOverride());
+});
+
+$("#btn-findleads").addEventListener("click", () => {
+  const query = $("#lg-query").value.trim();
+  const location = $("#lg-location").value.trim();
+  if (!query || !location) {
+    alert("Enter a business type (e.g. plumber) and a location (e.g. Tampa, FL).");
+    return;
+  }
+  const limit = Number($("#lg-limit").value) || 50;
+  const scrape = $("#lg-scrape").checked;
+  if ($("#lg-console")) $("#lg-console").textContent = "";
+  runAction(`Finding "${query}" in ${location}…`, () =>
+    window.outreach.findLeads({ query, location, limit, scrape })
+  );
 });
 
 // ---------- lead navigator (search + status filter) ----------

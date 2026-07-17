@@ -20,17 +20,58 @@ async function geocode(location) {
   return { south: b[0], north: b[1], west: b[2], east: b[3], display: data[0].display_name };
 }
 
+// Map everyday wording to the values OpenStreetMap actually uses, plus a few
+// synonyms. OSM tags a plumber as craft=plumber (not "plumbing"), so we search
+// on stems/synonyms rather than the literal word the user typed.
+const SYNONYMS = {
+  plumbing: ["plumber"],
+  roofing: ["roofer"],
+  electrical: ["electrician"],
+  electric: ["electrician"],
+  hvac: ["hvac", "heating", "ventilation", "air_condition"],
+  heating: ["hvac", "heating"],
+  landscaping: ["landscaper", "gardener", "garden"],
+  painting: ["painter"],
+  flooring: ["flooring", "carpet"],
+  cleaning: ["cleaning", "cleaner"],
+  remodeling: ["builder", "carpenter"],
+  construction: ["builder", "construction"],
+  contractor: ["builder", "contractor"],
+  landscaper: ["landscaper", "gardener"],
+  pool: ["pool", "swimming"],
+  pest: ["pest_control"],
+  towing: ["car_repair", "towing"],
+  auto: ["car_repair", "car"],
+  dentist: ["dentist"],
+  salon: ["hairdresser", "beauty"],
+  barber: ["hairdresser"],
+  restaurant: ["restaurant"],
+  bakery: ["bakery"],
+  gym: ["fitness_centre", "gym"],
+};
+
+function expandTerm(term) {
+  const t = term.toLowerCase().replace(/[\\"\n]/g, "").trim();
+  const variants = new Set([t]);
+  const stem = t.replace(/(ing|ers|er|s)$/, "");
+  if (stem.length >= 4) variants.add(stem); // "plumbing"->"plumb" matches "plumber"
+  for (const [k, vals] of Object.entries(SYNONYMS)) {
+    if (t.includes(k) || (stem.length >= 4 && k.startsWith(stem))) vals.forEach((v) => variants.add(v));
+  }
+  return [...variants].map((v) => v.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+}
+
 function overpassQuery(term, box, limit) {
-  const t = term.replace(/[\\"\n]/g, "").trim();
+  const alt = expandTerm(term).join("|");
   const bbox = `${box.south},${box.west},${box.north},${box.east}`;
-  // Match the term against common business classification tags and the name.
+  // Match the expanded term against common business classification tags + name.
   return `[out:json][timeout:90];
 (
-  nwr["craft"~"${t}",i](${bbox});
-  nwr["shop"~"${t}",i](${bbox});
-  nwr["office"~"${t}",i](${bbox});
-  nwr["amenity"~"${t}",i](${bbox});
-  nwr["name"~"${t}",i](${bbox});
+  nwr["craft"~"${alt}",i](${bbox});
+  nwr["shop"~"${alt}",i](${bbox});
+  nwr["office"~"${alt}",i](${bbox});
+  nwr["amenity"~"${alt}",i](${bbox});
+  nwr["name"~"${alt}",i](${bbox});
 );
 out center tags ${limit};`;
 }
@@ -101,14 +142,20 @@ export async function findLeads(
 
   const seen = new Set();
   const leads = [];
+  let named = 0;
+  let noContact = 0;
   for (const el of elements) {
     const tags = el.tags || {};
     const name = tags.name;
     if (!name) continue;
+    named++;
     let website = pick(tags, ["website", "contact:website", "url"]);
     const email = pick(tags, ["email", "contact:email"]);
     const phone = pick(tags, ["phone", "contact:phone"]);
-    if (!website && !email) continue; // no way to reach them — skip
+    if (!website && !email) {
+      noContact++;
+      continue; // no website/email — nothing to audit or email
+    }
     if (website && !/^https?:\/\//.test(website)) website = "https://" + website;
     const key = (email || website || name).toLowerCase();
     if (seen.has(key)) continue;
@@ -116,7 +163,15 @@ export async function findLeads(
     leads.push({ name, company: name, website: website || "", email: email || "", phone: phone || "" });
     if (leads.length >= limit) break;
   }
-  onProgress(`Found ${leads.length} candidate business(es) with a website or email.`);
+  onProgress(
+    `Matched ${named} business(es) on the map; ${leads.length} have a website or email to work with` +
+      (noContact ? ` (${noContact} were listed with no website/email and skipped).` : ".")
+  );
+  if (!leads.length && named === 0) {
+    onProgress(
+      `Tip: OpenStreetMap has thin coverage of local businesses in many US areas. Try a broader area (a bigger nearby city), a different wording, or a paid data source for better lists.`
+    );
+  }
 
   if (scrapeEmails) {
     let i = 0;

@@ -154,6 +154,14 @@ async function main() {
           }
         } catch (err) {
           console.log(`✗ ${lead.email}: ${err.message}`);
+          // Auth/connection failures affect every send — stop immediately
+          // instead of hammering the server (which triggers IP rate limits).
+          if (/535|invalid login|authentication|EAUTH|421|ECONNECTION|ENOTFOUND/i.test(err.message)) {
+            console.log(
+              "Stopping — this looks like a mail-server login/connection problem, not a per-lead issue. Fix your SMTP settings (host, username, password) and try again."
+            );
+            break;
+          }
         }
       }
       break;

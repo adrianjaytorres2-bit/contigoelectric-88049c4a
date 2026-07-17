@@ -137,7 +137,9 @@ function pick(tags, keys) {
 }
 
 const EMAIL_RE = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
-const JUNK_EMAIL = /(example\.|sentry|wixpress|\.png|\.jpg|\.gif|@2x|godaddy|wordpress|schema\.org)/i;
+// Filter out placeholder/template/library emails that show up in page source.
+const JUNK_EMAIL =
+  /(example\.(com|org|net)|mycompany\.com|yourcompany|yourdomain|yoursite|yourname|domain\.com|email\.com|test@|user@|name@|sentry|wixpress|\.png|\.jpg|\.gif|@2x|godaddy|wordpress|schema\.org|astigmatic\.com|googlefonts|fontawesome|@sentry)/i;
 
 async function scrapeEmail(website) {
   const base = website.replace(/\/+$/, "");

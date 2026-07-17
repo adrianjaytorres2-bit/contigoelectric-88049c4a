@@ -133,7 +133,7 @@
     <section id="view-findleads" class="view">
       <header class="view-header">
         <h1>Find Leads</h1>
-        <p>Generate a lead list from OpenStreetMap — free, no API key, no credits.</p>
+        <p>Generate a lead list by business type and location. Uses free OpenStreetMap by default, or Google Places for full coverage if you add a key in Settings.</p>
       </header>
       <div class="leadgen-form">
         <label>Type of business
@@ -277,6 +277,12 @@
           <legend>AI (email writing)</legend>
           <label class="full">Anthropic API key <input name="anthropicApiKey" type="password" placeholder="sk-ant-..." /></label>
           <label>Min. quality score to email (0–100) <input name="minQualityScore" type="number" min="0" max="100" /></label>
+        </fieldset>
+
+        <fieldset>
+          <legend>Lead generation (optional — for better Find Leads coverage)</legend>
+          <p class="hint">Leave blank to use free OpenStreetMap data. Add a Google Places API key for full US business coverage (Google charges per search — check their pricing; there's a monthly free allowance). When a key is present, Find Leads uses Google automatically.</p>
+          <label class="full">Google Places API key <input name="googleApiKey" type="password" placeholder="AIza… (optional)" /></label>
         </fieldset>
 
         <fieldset>

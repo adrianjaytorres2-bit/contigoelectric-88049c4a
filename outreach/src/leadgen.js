@@ -175,47 +175,107 @@ async function scrapeEmail(website) {
   return null;
 }
 
+// Google Places (New) Text Search — full US business coverage. Needs a
+// GOOGLE_API_KEY. Returns name + website + phone (Google does not expose email,
+// so we still scrape the site for that). Pages up to `limit` results.
+async function googlePlaces(query, location, limit, onProgress) {
+  const key = process.env.GOOGLE_API_KEY;
+  const out = [];
+  let pageToken = null;
+  const textQuery = `${query} in ${location}`;
+  do {
+    const body = { textQuery, pageSize: Math.min(20, Math.max(1, limit - out.length)) };
+    if (pageToken) body.pageToken = pageToken;
+    const res = await fetch("https://places.googleapis.com/v1/places:searchText", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Goog-Api-Key": key,
+        "X-Goog-FieldMask":
+          "places.displayName,places.websiteUri,places.nationalPhoneNumber,places.formattedAddress,nextPageToken",
+      },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      let detail = "";
+      try {
+        detail = (await res.json())?.error?.message || "";
+      } catch {
+        /* ignore */
+      }
+      throw new Error(`Google Places error (HTTP ${res.status}). ${detail}`.trim());
+    }
+    const data = await res.json();
+    for (const p of data.places || []) {
+      out.push({
+        name: p.displayName?.text || "",
+        website: p.websiteUri || "",
+        email: "",
+        phone: p.nationalPhoneNumber || "",
+      });
+    }
+    pageToken = data.nextPageToken || null;
+    if (pageToken && out.length < limit) await sleep(1500);
+  } while (pageToken && out.length < limit);
+  onProgress(`Google Places returned ${out.length} business(es).`);
+  return out.slice(0, limit);
+}
+
 export async function findLeads(
   { query, location, limit = 50, scrapeEmails = true },
   onProgress = () => {}
 ) {
-  onProgress(`Locating "${location}"…`);
-  const box = await geocode(location);
-  onProgress(`Figuring out how "${query}" is categorized on the map…`);
-  const spec = await osmSpecFor(query);
-  onProgress(`Searching for "${query}" in ${box.display}…`);
-  const elements = await overpass(overpassFromSpec(spec, box, limit * 3));
+  const useGoogle = !!process.env.GOOGLE_API_KEY;
+  let candidates = [];
 
+  if (useGoogle) {
+    onProgress(`Searching Google Places for "${query}" in ${location}…`);
+    candidates = await googlePlaces(query, location, limit * 2, onProgress);
+  } else {
+    onProgress(`Locating "${location}"…`);
+    const box = await geocode(location);
+    onProgress(`Figuring out how "${query}" is categorized on the map…`);
+    const spec = await osmSpecFor(query);
+    onProgress(`Searching OpenStreetMap for "${query}" in ${box.display}…`);
+    const elements = await overpass(overpassFromSpec(spec, box, limit * 3));
+    for (const el of elements) {
+      const tags = el.tags || {};
+      if (!tags.name) continue;
+      candidates.push({
+        name: tags.name,
+        website: pick(tags, ["website", "contact:website", "url"]) || "",
+        email: pick(tags, ["email", "contact:email"]) || "",
+        phone: pick(tags, ["phone", "contact:phone"]) || "",
+      });
+    }
+  }
+
+  // Dedupe and keep only businesses we can actually reach (website or email).
   const seen = new Set();
   const leads = [];
-  let named = 0;
   let noContact = 0;
-  for (const el of elements) {
-    const tags = el.tags || {};
-    const name = tags.name;
-    if (!name) continue;
-    named++;
-    let website = pick(tags, ["website", "contact:website", "url"]);
-    const email = pick(tags, ["email", "contact:email"]);
-    const phone = pick(tags, ["phone", "contact:phone"]);
-    if (!website && !email) {
-      noContact++;
-      continue; // no website/email — nothing to audit or email
-    }
+  for (const c of candidates) {
+    if (!c.name) continue;
+    let website = c.website;
     if (website && !/^https?:\/\//.test(website)) website = "https://" + website;
-    const key = (email || website || name).toLowerCase();
+    if (!website && !c.email) {
+      noContact++;
+      continue;
+    }
+    const key = (c.email || website || c.name).toLowerCase();
     if (seen.has(key)) continue;
     seen.add(key);
-    leads.push({ name, company: name, website: website || "", email: email || "", phone: phone || "" });
+    leads.push({ name: c.name, company: c.name, website: website || "", email: c.email || "", phone: c.phone || "" });
     if (leads.length >= limit) break;
   }
   onProgress(
-    `Matched ${named} business(es) on the map; ${leads.length} have a website or email to work with` +
-      (noContact ? ` (${noContact} were listed with no website/email and skipped).` : ".")
+    `${candidates.length} business(es) found via ${useGoogle ? "Google Places" : "OpenStreetMap"}; ` +
+      `${leads.length} have a website or email` +
+      (noContact ? ` (${noContact} had no website/email and were skipped).` : ".")
   );
-  if (!leads.length && named === 0) {
+  if (!leads.length && !useGoogle) {
     onProgress(
-      `Tip: OpenStreetMap has thin coverage of local businesses in many US areas. Try a broader area (a bigger nearby city), a different wording, or a paid data source for better lists.`
+      `Tip: OpenStreetMap coverage is thin in many US areas. Add a Google Places API key in Settings for full coverage, or try a bigger nearby city.`
     );
   }
 

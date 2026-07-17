@@ -32,6 +32,7 @@ const defaultSettings = {
   imapUser: "",
   imapPass: "",
   chromiumPath: "",
+  googleApiKey: "",
 };
 
 function settingsFile() {
@@ -92,6 +93,7 @@ function engineEnv(s) {
     ...(s.imapUser ? { IMAP_USER: s.imapUser } : {}),
     ...(s.imapPass ? { IMAP_PASS: s.imapPass } : {}),
     ...(s.chromiumPath ? { OUTREACH_CHROMIUM: s.chromiumPath } : {}),
+    ...(s.googleApiKey ? { GOOGLE_API_KEY: s.googleApiKey } : {}),
   };
 }
 

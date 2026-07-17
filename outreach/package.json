@@ -1,0 +1,23 @@
+{
+  "name": "outreach",
+  "version": "0.1.0",
+  "description": "Self-hosted website-audit cold outreach tool (personal Swokei clone)",
+  "type": "module",
+  "private": true,
+  "bin": {
+    "outreach": "./src/cli.js"
+  },
+  "scripts": {
+    "start": "node src/cli.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.110.0",
+    "imapflow": "^1.0.164",
+    "mailparser": "^3.7.1",
+    "nodemailer": "^6.9.16",
+    "playwright": "^1.49.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

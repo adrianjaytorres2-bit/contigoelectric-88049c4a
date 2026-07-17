@@ -195,6 +195,7 @@ ipcMain.handle("leads:importDialog", async () => {
 
 ipcMain.handle("run:audit", () => runEngine(["audit"]));
 ipcMain.handle("run:draft", () => runEngine(["draft"]));
+ipcMain.handle("run:override", (_e, email) => runEngine(email ? ["override", email] : ["override"]));
 ipcMain.handle("run:send", (_e, { dryRun }) => runEngine(dryRun ? ["send", "--dry-run"] : ["send"]));
 ipcMain.handle("run:followup", (_e, { dryRun }) =>
   runEngine(dryRun ? ["followup", "--dry-run"] : ["followup"])

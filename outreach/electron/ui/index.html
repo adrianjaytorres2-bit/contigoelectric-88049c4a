@@ -28,6 +28,10 @@
         <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4-8 5-8-5V6l8 5 8-5z"/></svg>
         Emails
       </button>
+      <button class="nav-btn" data-view="guide">
+        <svg viewBox="0 0 24 24"><path d="M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z"/></svg>
+        Guide
+      </button>
       <button class="nav-btn" data-view="settings">
         <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
         Settings
@@ -90,6 +94,8 @@
               <button class="btn" id="btn-send-dry">🧪 Dry run</button>
               <button class="btn primary" id="btn-send">🚀 Send</button>
             </div>
+            <p id="override-hint" class="step-hint hidden"></p>
+            <button class="btn override hidden" id="btn-override">↩️ Send to skipped anyway</button>
           </div>
         </div>
         <div class="step">
@@ -125,11 +131,89 @@
         <div><h1>Leads</h1><p id="leads-count"></p></div>
         <button class="btn primary" id="btn-import-2">📂 Load lead list…</button>
       </header>
+      <div class="nav-controls">
+        <input id="lead-search" class="search" type="text" placeholder="🔎 Search name, company, email, website…" />
+        <div class="filter-chips" id="lead-filters">
+          <button class="chip active" data-filter="all">All</button>
+          <button class="chip" data-filter="new">New</button>
+          <button class="chip" data-filter="audited">Audited</button>
+          <button class="chip" data-filter="drafted">Drafted</button>
+          <button class="chip" data-filter="sent">Sent</button>
+          <button class="chip" data-filter="replied">Replied</button>
+          <button class="chip" data-filter="skipped">Skipped</button>
+        </div>
+      </div>
       <div class="table-wrap">
         <table id="leads-table">
-          <thead><tr><th>Lead</th><th>Website</th><th>Status</th><th>Score</th><th>Notes</th></tr></thead>
+          <thead><tr><th>Lead</th><th>Website</th><th>Status</th><th>Score</th><th>Notes</th><th></th></tr></thead>
           <tbody></tbody>
         </table>
+      </div>
+    </section>
+
+    <!-- GUIDE -->
+    <section id="view-guide" class="view">
+      <header class="view-header"><h1>Guide</h1><p>What everything means, in plain English.</p></header>
+
+      <div class="guide-card highlight">
+        <h2>⭐ Quality score — the one to understand</h2>
+        <p>Every audited site gets a <b>quality score from 0 to 100</b>. It measures <b>how badly the website needs work</b> — not how good it is.</p>
+        <div class="score-scale">
+          <div class="scale-bar"></div>
+          <div class="scale-labels">
+            <span><b>0</b><br>Polished site<br><span class="bad-prospect">Poor prospect</span></span>
+            <span><b>50</b><br>Some issues</span>
+            <span><b>100</b><br>Broken / outdated<br><span class="good-prospect">Great prospect</span></span>
+          </div>
+        </div>
+        <p><b>High score = good for you.</b> A high score means the site has lots of real problems (no mobile support, broken layout, outdated design), which means more to fix and an easier sale. A <b>low score</b> means the site is already clean — nothing to pitch, so it's a weak lead.</p>
+        <p><b>The threshold (Settings → “Min. quality score to email”):</b> the app only emails leads scoring <b>at or above</b> your threshold. Anyone below it is marked <span class="badge skipped">skipped</span> — “too good to bother.” Default is 40. Lower it to email more leads; raise it to only chase the worst sites.</p>
+        <p class="note">💡 The email was already written before the skip decision, so overriding a skipped lead costs nothing extra — you're just choosing to send an email that's already done.</p>
+      </div>
+
+      <div class="guide-card">
+        <h2>The 6-step pipeline</h2>
+        <ol class="guide-steps">
+          <li><b>Load leads</b> — import a CSV (name, email, company, website). Duplicates are removed automatically.</li>
+          <li><b>Audit</b> — opens each website invisibly, screenshots it, and measures real flaws (mobile, speed, SEO, outdated content). Uses no AI credits — it's free.</li>
+          <li><b>Generate drafts</b> — Claude reads the screenshot + flaws and writes a personal email per lead. This is the only step that costs money (see below).</li>
+          <li><b>Send</b> — goes out from your own mailbox, spaced apart, capped per day. Dry run shows the email without sending.</li>
+          <li><b>Follow-ups &amp; replies</b> — nudges people who didn't answer; “Check inbox” pulls replies and sorts them by intent.</li>
+          <li><b>Report</b> — a full HTML overview of everyone in the pipeline.</li>
+        </ol>
+      </div>
+
+      <div class="guide-card">
+        <h2>Lead statuses</h2>
+        <table class="guide-table">
+          <tr><td><span class="badge new">new</span></td><td>Imported, not yet audited.</td></tr>
+          <tr><td><span class="badge audited">audited</span></td><td>Website checked; waiting for an email to be written.</td></tr>
+          <tr><td><span class="badge drafted">drafted</span></td><td>Email written and ready to send.</td></tr>
+          <tr><td><span class="badge sent">sent</span></td><td>Email delivered to their inbox.</td></tr>
+          <tr><td><span class="badge replied">replied</span></td><td>They wrote back — follow-ups auto-stop for them.</td></tr>
+          <tr><td><span class="badge skipped">skipped</span></td><td>Either the site scored too well (below your threshold) <i>or</i> the site was broken/parked/unreachable. Skipped-with-a-draft can be overridden and sent.</td></tr>
+        </table>
+      </div>
+
+      <div class="guide-card">
+        <h2>Reply intents</h2>
+        <table class="guide-table">
+          <tr><td><span class="badge interested">interested</span></td><td>🔥 Wants to talk or asked a question. Follow up fast.</td></tr>
+          <tr><td><span class="badge maybe_later">maybe_later</span></td><td>⏳ Polite “not right now.” Circle back later.</td></tr>
+          <tr><td><span class="badge not_now">not_now</span></td><td>Not interested / unsubscribe. Leave them alone.</td></tr>
+        </table>
+      </div>
+
+      <div class="guide-card">
+        <h2>💵 What it costs</h2>
+        <p>Only the <b>Generate drafts</b> step uses paid AI — auditing, sending, follow-ups, and reply-sorting are effectively free (sorting a reply is a fraction of a cent).</p>
+        <p>Writing one personalized email (reading the screenshot + flaws, then drafting) runs roughly <b>1.5–3¢ per lead on Sonnet 5</b>, or about <b>4–5¢ on Opus</b>. So a batch of 100 leads costs a couple of dollars. That's very cheap for researched, personalized outreach — a person doing the same by hand takes 5–10 minutes each.</p>
+        <p class="note">💡 Skipping low-value sites (the quality threshold) and using the cheaper model are your two biggest cost levers.</p>
+      </div>
+
+      <div class="guide-card">
+        <h2>Overriding skipped leads</h2>
+        <p>On the Dashboard, if any leads were skipped for scoring below your threshold, a <b>“Send to skipped anyway”</b> button appears under step 4. It re-queues those already-written emails so the next Send includes them. Leads skipped because their site was broken/parked have no email to send, so they stay skipped.</p>
       </div>
     </section>
 

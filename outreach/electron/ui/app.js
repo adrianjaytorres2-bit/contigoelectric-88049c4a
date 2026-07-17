@@ -70,6 +70,65 @@ $("#btn-report").addEventListener("click", () => runAction("Building report…",
 $("#btn-install-browser").addEventListener("click", () =>
   runAction("Installing audit browser (Chromium)…", window.outreach.installBrowser)
 );
+$("#btn-override").addEventListener("click", () => {
+  if (!confirm("Re-queue all skipped leads (that have a draft) so they send on the next Send?")) return;
+  runAction("Overriding skipped leads…", () => window.outreach.runOverride());
+});
+
+// ---------- lead navigator (search + status filter) ----------
+let leadState = [];
+let leadFilter = "all";
+let leadQuery = "";
+
+$("#lead-search").addEventListener("input", (e) => {
+  leadQuery = e.target.value.toLowerCase().trim();
+  renderLeads();
+});
+$$("#lead-filters .chip").forEach((chip) =>
+  chip.addEventListener("click", () => {
+    $$("#lead-filters .chip").forEach((c) => c.classList.remove("active"));
+    chip.classList.add("active");
+    leadFilter = chip.dataset.filter;
+    renderLeads();
+  })
+);
+
+function renderLeads() {
+  const rows = leadState
+    .filter((l) => leadFilter === "all" || l.status === leadFilter)
+    .filter((l) => {
+      if (!leadQuery) return true;
+      return [l.name, l.company, l.email, l.website].some((v) =>
+        String(v || "").toLowerCase().includes(leadQuery)
+      );
+    });
+  $("#leads-count").textContent = `${rows.length} of ${leadState.length} lead(s)`;
+  $("#leads-table tbody").innerHTML =
+    rows
+      .map(
+        (l) => `<tr>
+      <td>${esc(l.name) || "—"}<br><small>${esc(l.company)} · ${esc(l.email)}</small></td>
+      <td><a href="${esc(l.website)}" target="_blank">${esc(l.website.replace(/^https?:\/\//, ""))}</a></td>
+      <td><span class="badge ${esc(l.status)}">${esc(l.status)}</span>${
+          l.reply ? `<br><span class="badge ${esc(l.reply.intent)}">${esc(l.reply.intent)}</span>` : ""
+        }</td>
+      <td>${l.score ?? "—"}</td>
+      <td><small>${esc(l.skipReason || (l.flaws || []).slice(0, 2).join("; ") || (l.reply?.summary ?? ""))}</small></td>
+      <td>${
+        l.status === "skipped" && l.subject
+          ? `<button class="btn tiny override" data-override="${esc(l.email)}">Send anyway</button>`
+          : ""
+      }</td>
+    </tr>`
+      )
+      .join("") || `<tr><td colspan="6" class="empty">No leads match — adjust the search or filter.</td></tr>`;
+
+  $$("#leads-table [data-override]").forEach((b) =>
+    b.addEventListener("click", () =>
+      runAction(`Overriding ${b.dataset.override}…`, () => window.outreach.runOverride(b.dataset.override))
+    )
+  );
+}
 
 // ---------- state rendering ----------
 const esc = (s) =>
@@ -100,22 +159,17 @@ async function refresh() {
     .map(([label, n]) => `<div class="stat"><b>${n}</b><span>${label}</span></div>`)
     .join("");
 
-  // leads table
-  $("#leads-count").textContent = `${state.leads.length} lead(s)`;
-  $("#leads-table tbody").innerHTML =
-    state.leads
-      .map(
-        (l) => `<tr>
-      <td>${esc(l.name) || "—"}<br><small>${esc(l.company)} · ${esc(l.email)}</small></td>
-      <td><a href="${esc(l.website)}" target="_blank">${esc(l.website.replace(/^https?:\/\//, ""))}</a></td>
-      <td><span class="badge ${esc(l.status)}">${esc(l.status)}</span>${
-          l.reply ? `<br><span class="badge ${esc(l.reply.intent)}">${esc(l.reply.intent)}</span>` : ""
-        }</td>
-      <td>${l.score ?? "—"}</td>
-      <td><small>${esc(l.skipReason || (l.flaws || []).slice(0, 2).join("; ") || (l.reply?.summary ?? ""))}</small></td>
-    </tr>`
-      )
-      .join("") || `<tr><td colspan="5" class="empty">No leads yet — load a CSV to get started.</td></tr>`;
+  // override button: show when skipped leads still have a draft to send
+  const overridable = state.leads.filter((l) => l.status === "skipped" && l.subject).length;
+  $("#btn-override").classList.toggle("hidden", overridable === 0);
+  $("#override-hint").classList.toggle("hidden", overridable === 0);
+  if (overridable) {
+    $("#override-hint").textContent = `${overridable} lead(s) were skipped for scoring too well — their emails are already written.`;
+  }
+
+  // leads navigator
+  leadState = state.leads;
+  renderLeads();
 
   // emails
   const withDrafts = state.leads.filter((l) => l.subject);

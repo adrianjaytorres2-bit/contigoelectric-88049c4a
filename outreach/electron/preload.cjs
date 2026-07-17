@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld("outreach", {
   importLeads: () => ipcRenderer.invoke("leads:importDialog"),
   runAudit: () => ipcRenderer.invoke("run:audit"),
   runDraft: () => ipcRenderer.invoke("run:draft"),
+  runOverride: (email) => ipcRenderer.invoke("run:override", email),
   runSend: (dryRun) => ipcRenderer.invoke("run:send", { dryRun }),
   runFollowup: (dryRun) => ipcRenderer.invoke("run:followup", { dryRun }),
   runInbox: () => ipcRenderer.invoke("run:inbox"),

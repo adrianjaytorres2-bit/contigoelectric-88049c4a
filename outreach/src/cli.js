@@ -223,6 +223,38 @@ async function main() {
       break;
     }
 
+    case "override": {
+      // Re-queue skipped leads so they get sent anyway. Only leads that already
+      // have a written draft can be overridden (quality-threshold skips); leads
+      // skipped because the site was broken/parked/unreachable have no email to
+      // send and are reported as un-overridable.
+      const email = args[0] && !args[0].startsWith("--") ? args[0] : null;
+      const skipped = Object.values(db.leads).filter(
+        (l) => l.status === STATUS.SKIPPED && (!email || l.email === email)
+      );
+      let requeued = 0;
+      const noDraft = [];
+      for (const l of skipped) {
+        if (l.draft) {
+          l.status = STATUS.DRAFTED;
+          l.overridden = true;
+          l.skipReason = null;
+          requeued++;
+        } else {
+          noDraft.push(l);
+        }
+      }
+      store.save(db);
+      console.log(`Overrode ${requeued} skipped lead(s) — now queued to send.`);
+      if (noDraft.length) {
+        console.log(
+          `${noDraft.length} skipped lead(s) have no draft (broken/parked site) and can't be sent:`
+        );
+        for (const l of noDraft) console.log(`  - ${l.email}: ${l.skipReason || "no audit"}`);
+      }
+      break;
+    }
+
     case "report": {
       const out = writeReport(db);
       console.log(`Report written to ${out}`);
@@ -247,6 +279,7 @@ Usage:
   outreach audit [--limit N]       Audit websites of new leads in headless Chromium
   outreach draft [--limit N]       Write personalized emails with Claude for audited leads
   outreach preview [email]         Show drafted emails before sending
+  outreach override [email]        Re-queue skipped leads (that have a draft) so they send anyway
   outreach send [--dry-run]        Send drafted emails via SMTP (throttled, daily cap)
   outreach followup [--dry-run]    Send due follow-ups to non-repliers
   outreach inbox                   Pull replies via IMAP and classify intent

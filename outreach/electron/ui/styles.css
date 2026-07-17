@@ -145,6 +145,52 @@ nav { display: flex; flex-direction: column; gap: 4px; }
   white-space: pre-wrap; word-break: break-word;
 }
 
+.btn.override { background: #3a2f14; color: var(--accent-2); border: 1px solid rgba(245,165,36,0.4); margin-top: 8px; }
+.step-hint { color: var(--accent-2); font-size: 12.5px; margin-top: 10px; }
+
+/* lead navigator */
+.nav-controls { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; flex-wrap: wrap; }
+.search {
+  flex: 1; min-width: 240px;
+  background: #0e131b; color: var(--text);
+  border: 1px solid var(--border); border-radius: 8px;
+  padding: 10px 13px; font-size: 14px;
+}
+.search:focus { outline: none; border-color: var(--accent); }
+.filter-chips { display: flex; gap: 7px; flex-wrap: wrap; }
+.chip {
+  background: var(--panel-2); color: var(--muted);
+  border: 1px solid var(--border); border-radius: 999px;
+  padding: 6px 14px; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.chip:hover { color: var(--text); }
+.chip.active { background: rgba(245,165,36,0.14); color: var(--accent-2); border-color: rgba(245,165,36,0.4); }
+
+/* guide */
+.guide-card {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 20px 24px; margin-bottom: 16px;
+}
+.guide-card.highlight { border-color: rgba(245,165,36,0.4); background: linear-gradient(180deg, rgba(245,165,36,0.06), var(--panel)); }
+.guide-card h2 { font-size: 17px; margin-bottom: 12px; }
+.guide-card p { color: #c4cdda; font-size: 14px; line-height: 1.6; margin-bottom: 10px; }
+.guide-card p.note { color: var(--muted); font-size: 13px; background: var(--panel-2); padding: 10px 13px; border-radius: 8px; }
+.guide-card b { color: var(--text); }
+.guide-steps { margin: 0 0 4px 18px; color: #c4cdda; font-size: 14px; line-height: 1.7; }
+.guide-steps li { margin-bottom: 6px; }
+.guide-table { width: 100%; border-collapse: collapse; }
+.guide-table td { padding: 8px 10px 8px 0; border-bottom: 1px solid var(--border); color: #c4cdda; font-size: 14px; vertical-align: top; }
+.guide-table td:first-child { width: 130px; white-space: nowrap; }
+.bad-prospect { color: var(--red); font-size: 12px; }
+.good-prospect { color: var(--green); font-size: 12px; }
+.score-scale { margin: 16px 0; }
+.scale-bar { height: 12px; border-radius: 6px; background: linear-gradient(90deg, #34d399 0%, #f5a524 55%, #f87171 100%); }
+.scale-labels { display: flex; justify-content: space-between; margin-top: 8px; }
+.scale-labels span { text-align: center; font-size: 13px; color: var(--muted); line-height: 1.4; flex: 1; }
+.scale-labels span:first-child { text-align: left; }
+.scale-labels span:last-child { text-align: right; }
+.scale-labels b { color: var(--text); }
+
 /* leads table */
 .table-wrap { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); overflow: auto; max-height: calc(100vh - 190px); }
 table { width: 100%; border-collapse: collapse; font-size: 13.5px; }

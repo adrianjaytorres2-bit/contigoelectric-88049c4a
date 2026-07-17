@@ -30,7 +30,7 @@ const DEFAULTS = {
 };
 
 export function loadConfig() {
-  const file = path.join(ROOT, "outreach.config.json");
+  const file = process.env.OUTREACH_CONFIG_FILE || path.join(ROOT, "outreach.config.json");
   let user = {};
   if (fs.existsSync(file)) {
     user = JSON.parse(fs.readFileSync(file, "utf8"));

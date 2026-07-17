@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>AT DEV GROUP — Outreach</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div id="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">AT</div>
+      <div class="brand-text">
+        <span class="brand-name">AT DEV GROUP</span>
+        <span class="brand-sub">Outreach Studio</span>
+      </div>
+    </div>
+    <nav>
+      <button class="nav-btn active" data-view="dashboard">
+        <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3zm0 8h8v-6H3zm10 0h8V11h-8zm0-18v6h8V3z"/></svg>
+        Dashboard
+      </button>
+      <button class="nav-btn" data-view="leads">
+        <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+        Leads
+      </button>
+      <button class="nav-btn" data-view="emails">
+        <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4-8 5-8-5V6l8 5 8-5z"/></svg>
+        Emails
+      </button>
+      <button class="nav-btn" data-view="settings">
+        <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+        Settings
+      </button>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="status-dots">
+        <span id="dot-identity" class="dot" title="Identity configured"></span>
+        <span id="dot-anthropic" class="dot" title="Anthropic API key"></span>
+        <span id="dot-smtp" class="dot" title="SMTP (sending)"></span>
+        <span id="dot-imap" class="dot" title="IMAP (replies)"></span>
+      </div>
+      <span class="version">v0.1 · local &amp; private</span>
+    </div>
+  </aside>
+
+  <main class="content">
+    <!-- DASHBOARD -->
+    <section id="view-dashboard" class="view active">
+      <header class="view-header">
+        <h1>Dashboard</h1>
+        <p>Your full outreach pipeline — from lead list to warm replies.</p>
+      </header>
+      <div id="setup-banner" class="banner hidden">
+        ⚠ Finish setup in <a href="#" data-goto="settings">Settings</a> before running the pipeline.
+      </div>
+      <div class="stat-row" id="stats"></div>
+
+      <div class="pipeline">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <h3>Load leads</h3>
+            <p>Import a CSV of prospects (name, email, company, website).</p>
+            <button class="btn primary" id="btn-import">📂 Load lead list…</button>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <h3>Audit websites</h3>
+            <p>Opens each site in a headless browser, screenshots it, finds real flaws.</p>
+            <button class="btn" id="btn-audit">🔍 Run audit</button>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <h3>Write emails</h3>
+            <p>Claude drafts a personal email per lead, referencing the flaws it found.</p>
+            <button class="btn" id="btn-draft">✍️ Generate drafts</button>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <h3>Send</h3>
+            <p>From your own mailbox, throttled, with a daily cap.</p>
+            <div class="btn-group">
+              <button class="btn" id="btn-send-dry">🧪 Dry run</button>
+              <button class="btn primary" id="btn-send">🚀 Send</button>
+            </div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">5</div>
+          <div class="step-body">
+            <h3>Follow up &amp; replies</h3>
+            <p>Nudge non-repliers; pull replies and sort by intent.</p>
+            <div class="btn-group">
+              <button class="btn" id="btn-followup">🔁 Follow-ups</button>
+              <button class="btn" id="btn-inbox">📥 Check inbox</button>
+            </div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">6</div>
+          <div class="step-body">
+            <h3>Report</h3>
+            <p>Full pipeline overview as an HTML report.</p>
+            <button class="btn" id="btn-report">📊 Open report</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="console-wrap">
+        <div class="console-head"><span>Activity log</span><button class="btn tiny" id="btn-clear-log">Clear</button></div>
+        <pre id="console"></pre>
+      </div>
+    </section>
+
+    <!-- LEADS -->
+    <section id="view-leads" class="view">
+      <header class="view-header row">
+        <div><h1>Leads</h1><p id="leads-count"></p></div>
+        <button class="btn primary" id="btn-import-2">📂 Load lead list…</button>
+      </header>
+      <div class="table-wrap">
+        <table id="leads-table">
+          <thead><tr><th>Lead</th><th>Website</th><th>Status</th><th>Score</th><th>Notes</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- EMAILS -->
+    <section id="view-emails" class="view">
+      <header class="view-header"><h1>Emails</h1><p>Review every draft before it goes out.</p></header>
+      <div id="emails-list"></div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section id="view-settings" class="view">
+      <header class="view-header"><h1>Settings</h1><p>Everything stays on this computer.</p></header>
+      <form id="settings-form" class="settings">
+        <fieldset>
+          <legend>Your identity</legend>
+          <label>Your name <input name="senderName" placeholder="Adrian" /></label>
+          <label>Business name <input name="senderBusiness" placeholder="AT DEV GROUP" /></label>
+          <label class="full">What you offer (used in every email)
+            <textarea name="senderPitch" rows="3"></textarea></label>
+          <label>Email language <input name="language" placeholder="English" /></label>
+        </fieldset>
+
+        <fieldset>
+          <legend>AI (email writing)</legend>
+          <label class="full">Anthropic API key <input name="anthropicApiKey" type="password" placeholder="sk-ant-..." /></label>
+          <label>Min. quality score to email (0–100) <input name="minQualityScore" type="number" min="0" max="100" /></label>
+        </fieldset>
+
+        <fieldset>
+          <legend>Sending (SMTP — e.g. Gmail app password)</legend>
+          <label>SMTP host <input name="smtpHost" placeholder="smtp.gmail.com" /></label>
+          <label>Port <input name="smtpPort" placeholder="587" /></label>
+          <label>Username <input name="smtpUser" placeholder="you@gmail.com" /></label>
+          <label>Password <input name="smtpPass" type="password" /></label>
+          <label>From <input name="smtpFrom" placeholder="Adrian &lt;you@gmail.com&gt;" /></label>
+          <label>Daily send cap <input name="dailySendCap" type="number" min="1" /></label>
+          <label>Seconds between sends <input name="secondsBetweenSends" type="number" min="5" /></label>
+        </fieldset>
+
+        <fieldset>
+          <legend>Replies (IMAP)</legend>
+          <label>IMAP host <input name="imapHost" placeholder="imap.gmail.com" /></label>
+          <label>Port <input name="imapPort" placeholder="993" /></label>
+          <label>Username <input name="imapUser" /></label>
+          <label>Password <input name="imapPass" type="password" /></label>
+        </fieldset>
+
+        <fieldset>
+          <legend>Follow-ups</legend>
+          <label>Days before follow-up <input name="followupAfterDays" type="number" min="1" /></label>
+          <label>Max follow-ups <input name="maxFollowups" type="number" min="0" max="5" /></label>
+        </fieldset>
+
+        <fieldset>
+          <legend>Audit browser</legend>
+          <p class="hint">The audit needs Chromium. Click once to install it, or point at an existing Chrome/Chromium below.</p>
+          <button type="button" class="btn" id="btn-install-browser">⬇️ Install audit browser</button>
+          <label class="full">Custom Chromium path (optional) <input name="chromiumPath" placeholder="C:\Program Files\Google\Chrome\Application\chrome.exe" /></label>
+        </fieldset>
+
+        <div class="save-row">
+          <button type="submit" class="btn primary big">💾 Save settings</button>
+          <span id="save-status"></span>
+        </div>
+      </form>
+    </section>
+  </main>
+</div>
+<script src="app.js"></script>
+</body>
+</html>

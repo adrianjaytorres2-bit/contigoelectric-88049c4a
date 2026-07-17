@@ -1,4 +1,23 @@
-# Outreach — your personal Swokei
+# AT DEV GROUP Outreach Studio — your personal Swokei
+
+## Desktop app (.exe)
+
+The tool ships as a branded Electron desktop app: dashboard with one-click pipeline buttons (load lead CSV, audit, generate drafts, dry-run/send, follow-ups, inbox, report), a lead table, an email review screen, and full in-app setup (identity, Anthropic API key, SMTP/IMAP, browser install). All data stays on your machine.
+
+**Get the .exe:** every push that touches `outreach/` runs the *Build Outreach Windows app* GitHub Actions workflow. Open the repo's **Actions** tab → latest run → download the `AT-DEV-GROUP-Outreach-windows` artifact. It contains a one-click installer and a portable `.exe` (no install needed).
+
+**Build locally instead** (on a Windows machine, or any machine with normal internet):
+
+```sh
+cd outreach
+npm install
+npm run app        # run the desktop app in dev mode
+npm run dist:win   # build installer + portable .exe into outreach/release/
+```
+
+First-time app setup: open **Settings**, fill in your name/pitch, Anthropic API key, and SMTP details, click **Install audit browser** once, then **Save**. The status dots in the sidebar turn green as each piece is configured.
+
+## CLI (same engine, no UI)
 
 A self-hosted clone of [swokei.com](https://www.swokei.com/)'s core workflow: audit prospects' real websites, write personalized cold emails that reference actual flaws found, send them from your own address, follow up automatically, and sort replies by intent.
 

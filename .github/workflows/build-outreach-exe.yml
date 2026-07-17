@@ -1,0 +1,34 @@
+name: Build Outreach Windows app
+
+on:
+  push:
+    branches: [main, "claude/**"]
+    paths: ["outreach/**", ".github/workflows/build-outreach-exe.yml"]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: outreach
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Windows installer + portable exe
+        run: npx electron-builder --win --publish never
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: AT-DEV-GROUP-Outreach-windows
+          path: |
+            outreach/release/*.exe
+          if-no-files-found: error

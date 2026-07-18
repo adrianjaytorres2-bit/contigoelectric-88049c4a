@@ -36,6 +36,10 @@
         <svg viewBox="0 0 24 24"><path d="M5 9.2h3V19H5zm5.6-4.2h2.8v14h-2.8zm5.6 7H19V19h-2.8z"/></svg>
         Analytics
       </button>
+      <button class="nav-btn" data-view="facebook">
+        <svg viewBox="0 0 24 24"><path d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12c0 4.84 3.44 8.87 8 9.8V15H8v-3h2V9.5C10 7.57 11.57 6 13.5 6H16v3h-2c-.55 0-1 .45-1 1v2h3v3h-3v6.95c5.05-.5 9-4.76 9-9.95z"/></svg>
+        Facebook DMs
+      </button>
       <button class="nav-btn" data-view="guide">
         <svg viewBox="0 0 24 24"><path d="M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z"/></svg>
         Guide
@@ -52,7 +56,7 @@
         <span id="dot-smtp" class="dot" title="SMTP (sending)"></span>
         <span id="dot-imap" class="dot" title="IMAP (replies)"></span>
       </div>
-      <span class="version">v0.2 · local &amp; private</span>
+      <span class="version">v0.3 · local &amp; private</span>
       <button id="update-banner" class="btn tiny primary hidden">⬇️ Update ready — restart</button>
     </div>
   </aside>
@@ -405,6 +409,12 @@
       </div>
 
       <div class="guide-card">
+        <h2>Facebook DMs</h2>
+        <p>The <b>Facebook DMs</b> page is a second, separate outreach channel from email — for businesses whose website links to a Facebook Page (found automatically during Find Leads). Click <b>Generate DM drafts</b> to write a short, casual Messenger-style message per eligible lead, referencing the same real flaw found in their audit.</p>
+        <p><b>This never sends anything for you.</b> Facebook has no legitimate API for messaging a business you have no relationship with, and automating your own account to send DMs would violate their Terms of Service and risk it getting banned. Instead: click <b>Open Facebook Page</b> to pull up their Messenger, <b>Copy message</b> to grab the draft, paste it in yourself, and hit send. Then mark it <b>Sent</b> (or <b>Skip</b>) to move to the next one. 10–15 real messages a day, sent by you, is completely normal Messenger use.</p>
+      </div>
+
+      <div class="guide-card">
         <h2>🔒 Security</h2>
         <p>Your Anthropic API key, SMTP/IMAP passwords, and Google Places key are encrypted at rest using your operating system's secure storage (Windows Credential Manager, macOS Keychain, or Linux libsecret) — not saved as plain text. This ties them to this specific computer and user account, which is expected: they won't transfer if you copy your settings file to another machine.</p>
       </div>
@@ -435,6 +445,25 @@
         <h2>Reply breakdown</h2>
         <div id="intent-breakdown"></div>
       </div>
+    </section>
+
+    <!-- FACEBOOK DMS -->
+    <section id="view-facebook" class="view">
+      <header class="view-header row">
+        <div>
+          <h1>Facebook DMs</h1>
+          <p>A manual outreach queue — separate from email. <b>Nothing here sends automatically.</b> Each draft is copy-paste, sent by you from your own Facebook account, one message at a time.</p>
+        </div>
+        <button class="btn primary" id="btn-fb-generate">✍️ Generate DM drafts</button>
+      </header>
+      <p class="hint" id="fb-eligible-hint"></p>
+      <p class="hint">
+        Why manual only: Facebook has no API for messaging businesses you have no relationship with, and automating your
+        personal account to send DMs violates their Terms of Service and risks a ban. 10–15 real, human-sent messages a
+        day is completely normal Messenger use and carries no such risk — this queue just gives you a personalized
+        draft and a one-click link to each business's Page so you can work through them fast.
+      </p>
+      <div id="fb-queue"></div>
     </section>
 
     <!-- SETTINGS -->

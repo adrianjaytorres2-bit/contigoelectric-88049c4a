@@ -40,7 +40,7 @@ const actionButtons = [
   "#btn-send", "#btn-send-dry", "#btn-followup", "#btn-inbox", "#btn-report",
   "#btn-install-browser", "#btn-override", "#btn-findleads",
   "#btn-add-lead", "#btn-quick-send", "#btn-bulk-export", "#btn-bulk-delete",
-  "#btn-export-all",
+  "#btn-export-all", "#btn-fb-generate",
 ];
 function setBusy(busy) {
   actionButtons.forEach((sel) => { const b = $(sel); if (b) b.disabled = busy; });
@@ -96,6 +96,10 @@ $("#btn-findleads").addEventListener("click", () => {
     window.outreach.findLeads({ query, location, limit, scrape })
   );
 });
+
+$("#btn-fb-generate").addEventListener("click", () =>
+  runAction("Writing Facebook DM drafts…", () => window.outreach.fbGenerateDrafts())
+);
 
 // ---------- Add Lead / Quick Send modals ----------
 function openModal(id) {
@@ -352,6 +356,9 @@ async function refresh() {
   // analytics
   renderAnalytics(state);
 
+  // facebook DM queue
+  renderFacebook(state);
+
   // emails
   const withDrafts = state.leads.filter((l) => l.subject);
   $("#emails-list").innerHTML =
@@ -456,6 +463,68 @@ function renderAnalytics(state) {
             return `<div style="margin-bottom:8px;"><span>${label}: <b>${n}</b></span></div>`;
           })
           .join("");
+}
+
+// ---------- Facebook DM queue (manual send only) ----------
+function renderFacebook(state) {
+  const eligible = state.fbEligibleCount || 0;
+  $("#fb-eligible-hint").textContent = eligible
+    ? `${eligible} audited lead(s) have a Facebook Page link and are ready for a DM draft.`
+    : `No leads waiting for a DM draft right now — leads need a website audit done and a Facebook Page link found by Find Leads first.`;
+
+  const queue = state.fbQueue || [];
+  const pending = queue.filter((q) => q.status === "pending");
+  const done = queue.filter((q) => q.status !== "pending");
+
+  const card = (q) => `<div class="fb-card" data-id="${esc(q.id)}">
+      <div class="head">
+        <span class="to">${esc(q.name) || esc(q.company)} <small>${esc(q.company)}</small></span>
+        <span class="badge ${q.status === "sent" ? "sent" : q.status === "skipped" ? "skipped" : "drafted"}">${esc(q.status)}</span>
+      </div>
+      <textarea class="fb-draft-input" rows="4" ${q.status !== "pending" ? "disabled" : ""}>${esc(q.draft)}</textarea>
+      <div class="email-card-footer">
+        <a href="#" class="btn tiny fb-open" data-url="${esc(q.facebookUrl)}">🔗 Open Facebook Page</a>
+        ${
+          q.status === "pending"
+            ? `<button class="btn tiny fb-copy">📋 Copy message</button>
+               <button class="btn tiny primary fb-sent" data-id="${esc(q.id)}">✅ Mark sent</button>
+               <button class="btn tiny fb-skip" data-id="${esc(q.id)}">⏭ Skip</button>`
+            : `<span class="hint" style="margin:0;">${q.status === "sent" ? "Marked sent" : "Skipped"}${q.sentAt ? " · " + new Date(q.sentAt).toLocaleDateString() : ""}</span>`
+        }
+      </div>
+    </div>`;
+
+  $("#fb-queue").innerHTML =
+    (pending.length ? `<h3 class="fb-section-title">Ready to send (${pending.length})</h3>${pending.map(card).join("")}` : `<div class="empty">No drafts waiting. Click “Generate DM drafts” above.</div>`) +
+    (done.length ? `<h3 class="fb-section-title">History</h3>${done.map(card).join("")}` : "");
+
+  $$("#fb-queue .fb-open").forEach((a) =>
+    a.addEventListener("click", (e) => {
+      e.preventDefault();
+      if (a.dataset.url) window.outreach.fbOpenLink(a.dataset.url);
+    })
+  );
+  $$("#fb-queue .fb-copy").forEach((btn) =>
+    btn.addEventListener("click", async () => {
+      const text = btn.closest(".fb-card").querySelector(".fb-draft-input").value;
+      await navigator.clipboard.writeText(text);
+      const prev = btn.textContent;
+      btn.textContent = "Copied ✓";
+      setTimeout(() => (btn.textContent = prev), 1500);
+    })
+  );
+  $$("#fb-queue .fb-sent").forEach((btn) =>
+    btn.addEventListener("click", () => {
+      const q = queue.find((x) => x.id === btn.dataset.id);
+      if (q) runAction(`Marking ${q.name || q.company} sent…`, () => window.outreach.fbMarkSent(q.id));
+    })
+  );
+  $$("#fb-queue .fb-skip").forEach((btn) =>
+    btn.addEventListener("click", () => {
+      const q = queue.find((x) => x.id === btn.dataset.id);
+      if (q) runAction(`Skipping ${q.name || q.company}…`, () => window.outreach.fbMarkSkipped(q.id));
+    })
+  );
 }
 
 // ---------- schedule send ----------

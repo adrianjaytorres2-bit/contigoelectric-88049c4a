@@ -41,6 +41,19 @@ node src/cli.js findleads "dentist" "Austin, TX" --no-scrape      # faster, OSM 
 ```
 Coverage varies by area (it's community-mapped data), so try a few wordings if results are thin. Businesses without a public email still import with their website — you can audit them and add an email later.
 
+## Facebook DMs (manual outreach queue)
+
+The **Facebook DMs** page adds a second outreach channel for leads whose website links to a Facebook Page (captured automatically by Find Leads). Click **Generate DM drafts** to have Claude write a short, casual Messenger-style message per eligible lead, referencing the same real flaw found in that lead's website audit.
+
+**This never sends anything automatically.** Facebook has no API for messaging a business you have no relationship with, and automating your personal account to send DMs violates their Terms of Service and risks a ban. Instead: click **Open Facebook Page** to pull up their Messenger, **Copy message**, paste it in yourself, and hit send — then mark it **Sent** or **Skip**. 10–15 real, human-sent messages a day is normal Messenger use and carries none of that risk.
+
+CLI equivalent:
+```sh
+node src/cli.js fbdraft --limit 15   # write DM drafts for eligible leads
+node src/cli.js fbqueue              # list drafts waiting to be sent
+node src/cli.js fbsent <email>       # mark one as sent, after you send it yourself
+```
+
 ## CLI (same engine, no UI)
 
 A self-hosted clone of [swokei.com](https://www.swokei.com/)'s core workflow: audit prospects' real websites, write personalized cold emails that reference actual flaws found, send them from your own address, follow up automatically, and sort replies by intent.

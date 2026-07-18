@@ -1,6 +1,6 @@
 {
   "name": "outreach",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "AT DEV GROUP Outreach Studio — website-audit cold outreach, self-hosted",
   "type": "module",
   "private": true,

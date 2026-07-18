@@ -307,6 +307,22 @@ function readState() {
     if (l.reply?.intent === "interested") variants[v].interested++;
   }
 
+  const fbQueue = leads
+    .filter((l) => l.fb?.draft)
+    .map((l) => ({
+      id: l.id,
+      name: l.name,
+      company: l.company,
+      email: l.email,
+      website: l.website,
+      facebookUrl: l.facebookUrl,
+      draft: l.fb.draft,
+      status: l.fb.status,
+      generatedAt: l.fb.generatedAt || null,
+      sentAt: l.fb.sentAt || null,
+    }));
+  const fbEligibleCount = leads.filter((l) => l.facebookUrl && l.audit && !l.fb?.draft).length;
+
   return {
     leads: leads.map((l) => ({
       id: l.id,
@@ -326,12 +342,15 @@ function readState() {
       notes: l.notes || "",
       tags: l.tags || [],
       variant: l.draft?.variant || null,
+      facebookUrl: l.facebookUrl || null,
     })),
     counts,
     sentToday,
     dailyCapToday: cap,
     warmupActive: !!settings.warmupEnabled,
     suppressedCount,
+    fbQueue,
+    fbEligibleCount,
     analytics: {
       totalSent: everSent.length,
       totalReplied: replied.length,
@@ -431,6 +450,18 @@ ipcMain.handle("lead:suppress", (_e, { email, reason }) =>
 );
 ipcMain.handle("lead:unsuppress", (_e, email) => runEngine(["unsuppress", email]));
 ipcMain.handle("lead:bulkDelete", (_e, emails) => runEngine(["bulkdelete", "--emails", emails.join(",")]));
+
+// Facebook DM queue — drafts only, never sent automatically. You copy each
+// message and send it yourself from your own account.
+ipcMain.handle("fb:generateDrafts", (_e, { limit } = {}) =>
+  runEngine(limit ? ["fbdraft", "--limit", String(limit)] : ["fbdraft"])
+);
+ipcMain.handle("fb:markSent", (_e, email) => runEngine(["fbsent", email]));
+ipcMain.handle("fb:markSkipped", (_e, email) => runEngine(["fbskip", email]));
+ipcMain.handle("fb:openLink", (_e, url) => {
+  if (typeof url === "string" && /^https:\/\/(www\.)?facebook\.com\//i.test(url)) shell.openExternal(url);
+  return { ok: true };
+});
 
 ipcMain.handle("schedule:create", (_e, { fireAt, type }) => {
   const entry = {

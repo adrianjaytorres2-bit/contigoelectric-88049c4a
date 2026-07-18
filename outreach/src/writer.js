@@ -185,6 +185,70 @@ export async function draftFollowup(lead, config, followupNumber) {
   return JSON.parse(textBlock.text);
 }
 
+const FB_DM_SCHEMA = {
+  type: "object",
+  properties: {
+    message: {
+      type: "string",
+      description:
+        "A short Facebook Messenger DM, ready to paste and send as-is. No subject line, no email formatting.",
+    },
+  },
+  required: ["message"],
+  additionalProperties: false,
+};
+
+// Facebook DMs are read completely differently from email: shorter, more
+// casual, no signature block, and it has to survive appearing in a stranger's
+// "Message Requests" folder — so it opens with something unmistakably
+// specific to them, fast.
+export async function draftFbDm(lead, config) {
+  const content = [];
+  if (lead.audit?.screenshotPath && fs.existsSync(lead.audit.screenshotPath)) {
+    content.push({
+      type: "image",
+      source: {
+        type: "base64",
+        media_type: "image/jpeg",
+        data: fs.readFileSync(lead.audit.screenshotPath).toString("base64"),
+      },
+    });
+  }
+  content.push({
+    type: "text",
+    text:
+      `Prospect:\n${JSON.stringify(
+        { name: lead.name, company: lead.company, website: lead.website },
+        null,
+        2
+      )}\n\nWebsite audit facts:\n${JSON.stringify(lead.audit?.facts || {}, null, 2)}`,
+  });
+
+  const response = await client().messages.create({
+    model: MODEL,
+    max_tokens: 1024,
+    thinking: { type: "adaptive" },
+    system: `You are writing a Facebook Messenger DM on behalf of ${config.senderName} of ${config.senderBusiness}, sent from a personal account directly to this business's Facebook Page.
+Their pitch: ${config.senderPitch}
+
+This is a Messenger DM to someone who doesn't know you, so it lands in their "Message Requests" folder — it has to read as an obviously real, specific, human message or it gets ignored/deleted in a second.
+
+Rules:
+- 2-4 sentences max. Under 60 words.
+- Open with the one specific, real flaw you saw on their website (from the audit facts) — no greeting fluff first.
+- Casual Messenger tone: like a text, not an email. Contractions, no "Dear", no sign-off, no "Best regards".
+- One soft, low-pressure question or ask at the end (e.g. "want me to send a quick example?").
+- Never invent flaws not in the audit facts.
+
+${ANTI_AI_TELLS}`,
+    output_config: { format: { type: "json_schema", schema: FB_DM_SCHEMA } },
+    messages: [{ role: "user", content }],
+  });
+
+  const textBlock = response.content.find((b) => b.type === "text");
+  return JSON.parse(textBlock.text).message;
+}
+
 const INTENT_SCHEMA = {
   type: "object",
   properties: {

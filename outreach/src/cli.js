@@ -4,7 +4,7 @@ import { loadConfig, effectiveDailyCap, abVariantFor } from "./config.js";
 import * as store from "./store.js";
 import { csvToObjects } from "./csv.js";
 import { auditSites } from "./audit.js";
-import { draftEmail, draftFollowup, classifyReply } from "./writer.js";
+import { draftEmail, draftFollowup, classifyReply, draftFbDm } from "./writer.js";
 import { transport, sendEmail, sleep, sentToday, toHtmlEmail, appendUnsubscribeFooter } from "./sender.js";
 import { fetchReplies } from "./inbox.js";
 import { findLeads } from "./leadgen.js";
@@ -518,6 +518,7 @@ async function main() {
           website,
           industry: query,
           phone: r.phone || "",
+          facebookUrl: r.facebookUrl || "",
           status: STATUS.NEW,
           importedAt: new Date().toISOString(),
           source: "leadgen",
@@ -573,6 +574,64 @@ async function main() {
       break;
     }
 
+    case "fbdraft": {
+      // Generate Facebook Messenger DM drafts (manual-send only — never sent
+      // automatically) for audited leads that have a Facebook Page link.
+      //   outreach fbdraft [--limit N] [--force]
+      const limit = Number(flag(args, "--limit") || Infinity);
+      const force = args.includes("--force");
+      const candidates = Object.values(db.leads)
+        .filter((l) => l.facebookUrl && l.audit && (force || !l.fb?.draft))
+        .slice(0, limit);
+      if (!candidates.length)
+        return console.log("No leads with a Facebook Page link and a website audit are waiting for a DM draft.");
+      for (const lead of candidates) {
+        process.stdout.write(`Drafting FB DM for ${lead.company || lead.website}... `);
+        try {
+          const message = await draftFbDm(lead, config);
+          lead.fb = { draft: message, status: "pending", generatedAt: new Date().toISOString() };
+          console.log("ok");
+        } catch (err) {
+          console.log(`error: ${err.message}`);
+        }
+        store.save(db);
+      }
+      break;
+    }
+
+    case "fbqueue": {
+      const pending = Object.values(db.leads).filter((l) => l.fb?.status === "pending");
+      if (!pending.length) return console.log("Facebook DM queue is empty. Run `fbdraft` first.");
+      for (const l of pending) {
+        console.log(`\n─── ${l.name || l.company} — ${l.facebookUrl}`);
+        console.log(l.fb.draft);
+      }
+      console.log(`\n${pending.length} DM(s) waiting. Send manually, then run \`fbsent <email>\`.`);
+      break;
+    }
+
+    case "fbsent": {
+      // Accepts a lead id (preferred — FB leads may have no email) or an email.
+      const key = args[0];
+      const lead = db.leads[key] || Object.values(db.leads).find((l) => l.email && l.email === key);
+      if (!lead?.fb) die("usage: outreach fbsent <lead id or email> — lead must have a generated FB DM draft");
+      lead.fb.status = "sent";
+      lead.fb.sentAt = new Date().toISOString();
+      store.save(db);
+      console.log(`Marked FB DM to ${lead.name || lead.company} as sent.`);
+      break;
+    }
+
+    case "fbskip": {
+      const key = args[0];
+      const lead = db.leads[key] || Object.values(db.leads).find((l) => l.email && l.email === key);
+      if (!lead?.fb) die("usage: outreach fbskip <lead id or email> — lead must have a generated FB DM draft");
+      lead.fb.status = "skipped";
+      store.save(db);
+      console.log(`Skipped FB DM to ${lead.name || lead.company}.`);
+      break;
+    }
+
     case "report": {
       const out = writeReport(db);
       console.log(`Report written to ${out}`);
@@ -616,8 +675,16 @@ Usage:
   outreach tag <email> [--add tag1,tag2] [--remove tag3]   Manage tags on a lead
   outreach export <out.csv> [--status drafted]    Export leads to CSV
   outreach bulkdelete --emails a@b.com,c@d.com    Delete multiple leads at once
+  outreach fbdraft [--limit N] [--force]   Write Facebook DM drafts for audited leads with a Facebook Page link
+  outreach fbqueue                 List Facebook DMs waiting to be sent (you send them manually)
+  outreach fbsent <email|leadId>   Mark a Facebook DM as sent
+  outreach fbskip <email|leadId>   Skip a Facebook DM
   outreach report                  Generate data/report.html pipeline overview
-  outreach status                  Pipeline summary`);
+  outreach status                  Pipeline summary
+
+Facebook DMs are never sent automatically — this tool only drafts them and
+tracks the queue. You copy each one and send it yourself from your own
+account, the same way you'd message a business manually.`);
   }
 }
 

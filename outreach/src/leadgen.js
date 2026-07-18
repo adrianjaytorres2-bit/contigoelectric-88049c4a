@@ -141,7 +141,24 @@ const EMAIL_RE = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
 const JUNK_EMAIL =
   /(example\.(com|org|net)|mycompany\.com|yourcompany|yourdomain|yoursite|yourname|domain\.com|email\.com|test@|user@|name@|sentry|wixpress|\.png|\.jpg|\.gif|@2x|godaddy|wordpress|schema\.org|astigmatic\.com|googlefonts|fontawesome|@sentry)/i;
 
-async function scrapeEmail(website) {
+// A business's own Facebook Page link, when one is on the site (usually a
+// header/footer social icon). We only ever read this public URL — nothing is
+// fetched from facebook.com itself, so there's no scraping/automation of FB.
+const FB_RE = /https?:\/\/(?:www\.|m\.)?facebook\.com\/[A-Za-z0-9_.\-/]+/gi;
+const FB_JUNK = /(sharer|share\.php|plugins|dialog|login|help|policies|privacy|tr\?|l\.php|\/ads\/|business\/help|\.php)/i;
+
+function pickFacebookUrl(html) {
+  for (const raw of html.match(FB_RE) || []) {
+    const clean = raw.replace(/["'<>)\s].*$/, "").replace(/\/$/, "");
+    if (FB_JUNK.test(clean)) continue;
+    const path = clean.replace(/^https?:\/\/(?:www\.|m\.)?facebook\.com\//i, "");
+    if (!path || path.length < 2) continue;
+    return clean;
+  }
+  return null;
+}
+
+async function scrapeContactInfo(website) {
   const base = website.replace(/\/+$/, "");
   const candidates = [base, base + "/contact", base + "/contact-us", base + "/about"];
   let siteDomain = "";
@@ -150,7 +167,10 @@ async function scrapeEmail(website) {
   } catch {
     /* ignore */
   }
+  let email = null;
+  let facebookUrl = null;
   for (const url of candidates) {
+    if (email && facebookUrl) break;
     try {
       const ctrl = new AbortController();
       const timer = setTimeout(() => ctrl.abort(), 8000);
@@ -162,19 +182,22 @@ async function scrapeEmail(website) {
       clearTimeout(timer);
       if (!res.ok) continue;
       const html = await res.text();
-      const found = [...new Set((html.match(EMAIL_RE) || []).filter((e) => !JUNK_EMAIL.test(e)))];
-      if (found.length) {
-        // Prefer an address on the site's own domain (info@theirsite.com).
-        const onDomain = found.find(
-          (e) => siteDomain && e.toLowerCase().endsWith("@" + siteDomain)
-        );
-        return (onDomain || found[0]).toLowerCase();
+      if (!email) {
+        const found = [...new Set((html.match(EMAIL_RE) || []).filter((e) => !JUNK_EMAIL.test(e)))];
+        if (found.length) {
+          // Prefer an address on the site's own domain (info@theirsite.com).
+          const onDomain = found.find(
+            (e) => siteDomain && e.toLowerCase().endsWith("@" + siteDomain)
+          );
+          email = (onDomain || found[0]).toLowerCase();
+        }
       }
+      if (!facebookUrl) facebookUrl = pickFacebookUrl(html);
     } catch {
       /* timeout / network / bad URL — try the next candidate */
     }
   }
-  return null;
+  return { email, facebookUrl };
 }
 
 // Google Places (New) Text Search — full US business coverage. Needs a
@@ -267,7 +290,14 @@ export async function findLeads(
     const key = (c.email || website || c.name).toLowerCase();
     if (seen.has(key)) continue;
     seen.add(key);
-    leads.push({ name: c.name, company: c.name, website: website || "", email: c.email || "", phone: c.phone || "" });
+    leads.push({
+      name: c.name,
+      company: c.name,
+      website: website || "",
+      email: c.email || "",
+      phone: c.phone || "",
+      facebookUrl: "",
+    });
     if (leads.length >= limit) break;
   }
   onProgress(
@@ -285,13 +315,16 @@ export async function findLeads(
     let i = 0;
     for (const lead of leads) {
       i++;
-      if (lead.email || !lead.website) continue;
-      onProgress(`(${i}/${leads.length}) scanning ${lead.website} for an email…`);
-      lead.email = (await scrapeEmail(lead.website)) || "";
+      if ((lead.email && lead.facebookUrl) || !lead.website) continue;
+      onProgress(`(${i}/${leads.length}) scanning ${lead.website} for contact info…`);
+      const info = await scrapeContactInfo(lead.website);
+      if (!lead.email) lead.email = info.email || "";
+      if (!lead.facebookUrl) lead.facebookUrl = info.facebookUrl || "";
       await sleep(300); // be polite to the sites we're scanning
     }
     const withEmail = leads.filter((l) => l.email).length;
-    onProgress(`Done. ${withEmail}/${leads.length} now have an email address.`);
+    const withFb = leads.filter((l) => l.facebookUrl).length;
+    onProgress(`Done. ${withEmail}/${leads.length} now have an email address, ${withFb}/${leads.length} have a Facebook Page link.`);
   }
 
   return leads;

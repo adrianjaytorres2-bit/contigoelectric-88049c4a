@@ -206,6 +206,21 @@ ipcMain.handle("leads:importDialog", async () => {
 ipcMain.handle("run:audit", () => runEngine(["audit"]));
 ipcMain.handle("run:draft", () => runEngine(["draft"]));
 ipcMain.handle("run:override", (_e, email) => runEngine(email ? ["override", email] : ["override"]));
+ipcMain.handle("lead:add", (_e, { email, name, company, website, industry }) => {
+  const args = ["addlead", "--email", email];
+  if (name) args.push("--name", name);
+  if (company) args.push("--company", company);
+  if (website) args.push("--website", website);
+  if (industry) args.push("--industry", industry);
+  return runEngine(args);
+});
+ipcMain.handle("lead:quickSend", (_e, { email, subject, body, name, company, website }) => {
+  const args = ["quicksend", "--email", email, "--subject", subject, "--body", body];
+  if (name) args.push("--name", name);
+  if (company) args.push("--company", company);
+  if (website) args.push("--website", website);
+  return runEngine(args);
+});
 ipcMain.handle("lead:setDraft", (_e, { email, subject, body }) => {
   const args = ["setdraft", email];
   if (subject) args.push("--subject", subject);

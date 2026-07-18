@@ -39,6 +39,7 @@ const actionButtons = [
   "#btn-import", "#btn-import-2", "#btn-audit", "#btn-draft",
   "#btn-send", "#btn-send-dry", "#btn-followup", "#btn-inbox", "#btn-report",
   "#btn-install-browser", "#btn-override", "#btn-findleads",
+  "#btn-add-lead", "#btn-quick-send",
 ];
 function setBusy(busy) {
   actionButtons.forEach((sel) => { const b = $(sel); if (b) b.disabled = busy; });
@@ -93,6 +94,58 @@ $("#btn-findleads").addEventListener("click", () => {
   runAction(`Finding "${query}" in ${location}…`, () =>
     window.outreach.findLeads({ query, location, limit, scrape })
   );
+});
+
+// ---------- Add Lead / Quick Send modals ----------
+function openModal(id) {
+  $(`#${id}`).classList.remove("hidden");
+}
+function closeModal(el) {
+  el.closest(".modal-overlay").classList.add("hidden");
+}
+$$("[data-close-modal]").forEach((b) => b.addEventListener("click", () => closeModal(b)));
+$$(".modal-overlay").forEach((overlay) =>
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) overlay.classList.add("hidden");
+  })
+);
+
+$("#btn-add-lead").addEventListener("click", () => openModal("modal-add-lead"));
+$("#btn-quick-send").addEventListener("click", () => openModal("modal-quick-send"));
+
+$("#form-add-lead").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const f = e.target;
+  const params = {
+    email: f.email.value.trim(),
+    name: f.name.value.trim(),
+    company: f.company.value.trim(),
+    website: f.website.value.trim(),
+    industry: f.industry.value.trim(),
+  };
+  if (!params.email) return alert("Email is required.");
+  f.closest(".modal-overlay").classList.add("hidden");
+  f.reset();
+  await runAction(`Adding ${params.email}…`, () => window.outreach.addLead(params));
+  showView("leads");
+});
+
+$("#form-quick-send").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const f = e.target;
+  const params = {
+    email: f.email.value.trim(),
+    name: f.name.value.trim(),
+    company: f.company.value.trim(),
+    subject: f.subject.value.trim(),
+    body: f.body.value.trim(),
+  };
+  if (!params.email || !params.subject || !params.body) return alert("Email, subject, and body are required.");
+  if (!confirm(`Send this email to ${params.email} right now?`)) return;
+  f.closest(".modal-overlay").classList.add("hidden");
+  f.reset();
+  await runAction(`Sending to ${params.email}…`, () => window.outreach.quickSend(params));
+  showView("leads");
 });
 
 // ---------- lead navigator (search + status filter) ----------

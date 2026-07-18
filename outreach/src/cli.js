@@ -55,6 +55,77 @@ async function main() {
       break;
     }
 
+    case "addlead": {
+      // Manually add a single lead without a CSV:
+      //   outreach addlead --email a@b.com --name "Jane" --company "Jane's Cafe" --website https://... [--industry "..."]
+      const email = flag(args, "--email");
+      const name = flag(args, "--name") || "";
+      const company = flag(args, "--company") || "";
+      const website = store.normalizeUrl(flag(args, "--website") || "");
+      const industry = flag(args, "--industry") || "";
+      if (!email || typeof email !== "string") die("usage: outreach addlead --email a@b.com [--name] [--company] [--website] [--industry]");
+      const id = store.leadId(email, website);
+      if (db.leads[id]) {
+        console.log(`Lead already exists: ${email}`);
+        break;
+      }
+      db.leads[id] = {
+        id,
+        name,
+        email,
+        company,
+        website,
+        industry,
+        languageOverride: null,
+        status: STATUS.NEW,
+        importedAt: new Date().toISOString(),
+        source: "manual",
+        followups: [],
+      };
+      store.save(db);
+      console.log(`Added lead: ${name || email} <${email}>${website ? ` (${website})` : ""}.`);
+      break;
+    }
+
+    case "quicksend": {
+      // Send a fully manual, one-off email immediately — no audit/draft pipeline.
+      //   outreach quicksend --email a@b.com --subject "..." --body "..." [--name "Jane"] [--company "..."]
+      const email = flag(args, "--email");
+      const subject = flag(args, "--subject");
+      const body = flag(args, "--body");
+      if (!email || !subject || !body || typeof email !== "string")
+        die('usage: outreach quicksend --email a@b.com --subject "..." --body "..." [--name] [--company]');
+      const name = flag(args, "--name") || "";
+      const company = flag(args, "--company") || "";
+      const website = store.normalizeUrl(flag(args, "--website") || "");
+      const id = store.leadId(email, website || email);
+      const t = transport();
+      const messageId = await sendEmail(t, {
+        to: email,
+        subject,
+        body,
+        ...(config.htmlEmails ? { html: toHtmlEmail(body, config.senderName) } : {}),
+      });
+      db.leads[id] = {
+        id,
+        name,
+        email,
+        company,
+        website,
+        industry: "",
+        status: STATUS.SENT,
+        importedAt: new Date().toISOString(),
+        sentAt: new Date().toISOString(),
+        messageId,
+        source: "manual",
+        draft: { subject, body, quality_score: null, flaws: [] },
+        followups: [],
+      };
+      store.save(db);
+      console.log(`Sent to ${email}.`);
+      break;
+    }
+
     case "audit": {
       const limit = Number(flag(args, "--limit") || Infinity);
       const pending = store.leadsByStatus(db, STATUS.NEW).slice(0, limit);
@@ -354,6 +425,10 @@ async function main() {
 
 Usage:
   outreach import <leads.csv>      Import leads (columns: name,email,company,website[,industry,language])
+  outreach addlead --email a@b.com [--name] [--company] [--website] [--industry]
+                                   Manually add a single lead
+  outreach quicksend --email a@b.com --subject "..." --body "..." [--name] [--company]
+                                   Write + send a one-off email immediately, no audit/draft needed
   outreach findleads "<type>" "<location>" [--limit N] [--no-scrape]
                                    Generate leads from OpenStreetMap (free) — e.g. "plumber" "Tampa, FL"
   outreach audit [--limit N]       Audit websites of new leads in headless Chromium

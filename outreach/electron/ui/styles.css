@@ -283,3 +283,31 @@ td a { color: var(--blue); text-decoration: none; }
 .settings .hint { grid-column: 1 / -1; color: var(--muted); font-size: 13px; }
 .save-row { display: flex; align-items: center; gap: 16px; }
 #save-status { color: var(--green); font-size: 14px; }
+
+/* modals */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(4,6,9,0.65);
+  display: flex; align-items: center; justify-content: center; z-index: 50;
+}
+.modal-overlay.hidden { display: none; }
+.modal {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 14px; padding: 24px 26px; width: 480px; max-width: calc(100vw - 40px);
+  max-height: calc(100vh - 60px); overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
+.modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.modal-head h2 { font-size: 18px; }
+.modal-close { background: none; border: none; color: var(--muted); font-size: 16px; cursor: pointer; padding: 4px 8px; }
+.modal-close:hover { color: var(--text); }
+.modal .hint { margin-bottom: 16px; }
+.modal-form { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.modal-form label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--muted); }
+.modal-form label.full { grid-column: 1 / -1; }
+.modal-form input, .modal-form textarea {
+  background: #0e131b; color: var(--text);
+  border: 1px solid var(--border); border-radius: 7px;
+  padding: 9px 11px; font-size: 14px; font-family: inherit;
+}
+.modal-form input:focus, .modal-form textarea:focus { outline: none; border-color: var(--accent); }
+.modal-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px; }

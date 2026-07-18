@@ -10,6 +10,8 @@ contextBridge.exposeInMainWorld("outreach", {
   runOverride: (email) => ipcRenderer.invoke("run:override", email),
   findLeads: (params) => ipcRenderer.invoke("leadgen:search", params),
   setDraft: (params) => ipcRenderer.invoke("lead:setDraft", params),
+  addLead: (params) => ipcRenderer.invoke("lead:add", params),
+  quickSend: (params) => ipcRenderer.invoke("lead:quickSend", params),
   runSend: (dryRun) => ipcRenderer.invoke("run:send", { dryRun }),
   runFollowup: (dryRun) => ipcRenderer.invoke("run:followup", { dryRun }),
   runInbox: () => ipcRenderer.invoke("run:inbox"),

@@ -414,9 +414,11 @@ ipcMain.handle("lead:setDraft", (_e, { email, subject, body }) => {
   if (body) args.push("--body", body);
   return runEngine(args);
 });
-ipcMain.handle("leadgen:search", (_e, { query, location, limit, scrape }) => {
+ipcMain.handle("leadgen:search", (_e, { query, location, limit, scrape, independent, maxReviews }) => {
   const args = ["findleads", query, location, "--limit", String(limit || 50)];
   if (!scrape) args.push("--no-scrape");
+  if (independent) args.push("--independent");
+  if (maxReviews) args.push("--max-reviews", String(maxReviews));
   return runEngine(args);
 });
 ipcMain.handle("run:send", (_e, { dryRun }) => runEngine(dryRun ? ["send", "--dry-run"] : ["send"]));

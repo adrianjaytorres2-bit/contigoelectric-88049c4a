@@ -82,6 +82,10 @@ $("#btn-override").addEventListener("click", () => {
   runAction("Overriding skipped leads…", () => window.outreach.runOverride());
 });
 
+$("#lg-independent").addEventListener("change", (e) => {
+  $("#lg-maxreviews-wrap").classList.toggle("hidden", !e.target.checked);
+});
+
 $("#btn-findleads").addEventListener("click", () => {
   const query = $("#lg-query").value.trim();
   const location = $("#lg-location").value.trim();
@@ -91,9 +95,11 @@ $("#btn-findleads").addEventListener("click", () => {
   }
   const limit = Number($("#lg-limit").value) || 50;
   const scrape = $("#lg-scrape").checked;
+  const independent = $("#lg-independent").checked;
+  const maxReviews = independent && $("#lg-maxreviews").value ? Number($("#lg-maxreviews").value) : null;
   if ($("#lg-console")) $("#lg-console").textContent = "";
   runAction(`Finding "${query}" in ${location}…`, () =>
-    window.outreach.findLeads({ query, location, limit, scrape })
+    window.outreach.findLeads({ query, location, limit, scrape, independent, maxReviews })
   );
 });
 

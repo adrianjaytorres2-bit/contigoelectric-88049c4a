@@ -217,7 +217,7 @@ async function googlePlaces(query, location, limit, onProgress) {
         "Content-Type": "application/json",
         "X-Goog-Api-Key": key,
         "X-Goog-FieldMask":
-          "places.displayName,places.websiteUri,places.nationalPhoneNumber,places.formattedAddress,nextPageToken",
+          "places.displayName,places.websiteUri,places.nationalPhoneNumber,places.formattedAddress,places.userRatingCount,nextPageToken",
       },
       body: JSON.stringify(body),
     });
@@ -237,6 +237,8 @@ async function googlePlaces(query, location, limit, onProgress) {
         website: p.websiteUri || "",
         email: "",
         phone: p.nationalPhoneNumber || "",
+        reviewCount: typeof p.userRatingCount === "number" ? p.userRatingCount : null,
+        isChainTag: false, // no OSM brand-tag equivalent from Google
       });
     }
     pageToken = data.nextPageToken || null;
@@ -246,23 +248,80 @@ async function googlePlaces(query, location, limit, onProgress) {
   return out.slice(0, limit);
 }
 
+// A repeated exact business name across a single search area is a strong,
+// free signal of a chain/franchise (same brand, multiple locations) even
+// before any AI or tag data is involved.
+function normalizeBizName(name) {
+  return (name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+const CHAIN_SCHEMA = {
+  type: "object",
+  properties: {
+    is_chain: {
+      type: "array",
+      items: { type: "boolean" },
+      description:
+        "Same order and length as the input list. true = recognizable national/regional chain, franchise, or big-box retailer; false = independently owned local business.",
+    },
+  },
+  required: ["is_chain"],
+  additionalProperties: false,
+};
+
+// AI chain classifier — generalizes to any business type/brand without a
+// hardcoded blocklist. Runs as a single batched call regardless of how many
+// businesses are being checked. Fails open (assumes independent) on any
+// error so a classifier hiccup never silently drops real leads.
+async function classifyIndependent(names, location) {
+  if (!names.length) return [];
+  try {
+    if (!process.env.ANTHROPIC_API_KEY) throw new Error("no api key");
+    const client = new Anthropic();
+    const list = names.map((n, i) => `${i + 1}. ${n}`).join("\n");
+    const res = await client.messages.create({
+      model: TAG_MODEL,
+      max_tokens: Math.max(400, names.length * 6),
+      output_config: { format: { type: "json_schema", schema: CHAIN_SCHEMA } },
+      messages: [
+        {
+          role: "user",
+          content:
+            `These businesses were found in ${location}. For each one, say whether it's a recognizable national ` +
+            `or regional chain, franchise, or big-box retailer (true) or an independently owned local business ` +
+            `(false). When genuinely unsure, prefer false (assume independent).\n\n${list}`,
+        },
+      ],
+    });
+    const block = res.content.find((b) => b.type === "text");
+    const parsed = JSON.parse(block.text);
+    if (Array.isArray(parsed.is_chain) && parsed.is_chain.length === names.length) return parsed.is_chain;
+  } catch {
+    /* fall through */
+  }
+  return names.map(() => false);
+}
+
 export async function findLeads(
-  { query, location, limit = 50, scrapeEmails = true },
+  { query, location, limit = 50, scrapeEmails = true, preferIndependent = false, maxReviews = null },
   onProgress = () => {}
 ) {
   const useGoogle = !!process.env.GOOGLE_API_KEY;
+  // Pull extra headroom when filtering chains, since some candidates will
+  // get filtered out and we still want to reach the requested limit.
+  const fetchLimit = preferIndependent ? limit * 2 : limit;
   let candidates = [];
 
   if (useGoogle) {
     onProgress(`Searching Google Places for "${query}" in ${location}…`);
-    candidates = await googlePlaces(query, location, limit * 2, onProgress);
+    candidates = await googlePlaces(query, location, fetchLimit * 2, onProgress);
   } else {
     onProgress(`Locating "${location}"…`);
     const box = await geocode(location);
     onProgress(`Figuring out how "${query}" is categorized on the map…`);
     const spec = await osmSpecFor(query);
     onProgress(`Searching OpenStreetMap for "${query}" in ${box.display}…`);
-    const elements = await overpass(overpassFromSpec(spec, box, limit * 3));
+    const elements = await overpass(overpassFromSpec(spec, box, fetchLimit * 3));
     for (const el of elements) {
       const tags = el.tags || {};
       if (!tags.name) continue;
@@ -271,13 +330,38 @@ export async function findLeads(
         website: pick(tags, ["website", "contact:website", "url"]) || "",
         email: pick(tags, ["email", "contact:email"]) || "",
         phone: pick(tags, ["phone", "contact:phone"]) || "",
+        isChainTag: !!tags.brand, // OSM mappers tag franchise locations with brand=...
+        reviewCount: null,
       });
     }
   }
 
+  if (preferIndependent) {
+    // Free signal #1: reviews (Google only) — chains rack up hundreds+.
+    if (maxReviews != null) {
+      const before = candidates.length;
+      candidates = candidates.filter((c) => c.reviewCount == null || c.reviewCount <= maxReviews);
+      if (before !== candidates.length)
+        onProgress(`Filtered out ${before - candidates.length} business(es) with more than ${maxReviews} reviews.`);
+    }
+    // Free signal #2: OSM brand tag — mapped as a known franchise/chain.
+    const beforeBrand = candidates.length;
+    candidates = candidates.filter((c) => !c.isChainTag);
+    if (beforeBrand !== candidates.length)
+      onProgress(`Filtered out ${beforeBrand - candidates.length} business(es) tagged as a known franchise.`);
+    // Free signal #3: the same business name appears at multiple locations
+    // in this search — a strong sign of a chain even with no other data.
+    const nameCounts = {};
+    for (const c of candidates) nameCounts[normalizeBizName(c.name)] = (nameCounts[normalizeBizName(c.name)] || 0) + 1;
+    const beforeDupe = candidates.length;
+    candidates = candidates.filter((c) => nameCounts[normalizeBizName(c.name)] < 2);
+    if (beforeDupe !== candidates.length)
+      onProgress(`Filtered out ${beforeDupe - candidates.length} business(es) appearing at multiple locations here.`);
+  }
+
   // Dedupe and keep only businesses we can actually reach (website or email).
   const seen = new Set();
-  const leads = [];
+  let leads = [];
   let noContact = 0;
   for (const c of candidates) {
     if (!c.name) continue;
@@ -298,8 +382,19 @@ export async function findLeads(
       phone: c.phone || "",
       facebookUrl: "",
     });
-    if (leads.length >= limit) break;
+    if (leads.length >= fetchLimit) break;
   }
+
+  if (preferIndependent && leads.length) {
+    onProgress(`Checking ${leads.length} business(es) for chain/franchise names…`);
+    const flags = await classifyIndependent(leads.map((l) => l.name), location);
+    const beforeAi = leads.length;
+    leads = leads.filter((_, i) => !flags[i]);
+    if (beforeAi !== leads.length)
+      onProgress(`AI filtered out ${beforeAi - leads.length} more likely chain(s) by name — ${leads.length} independent-looking business(es) left.`);
+  }
+  leads = leads.slice(0, limit);
+
   onProgress(
     `${candidates.length} business(es) found via ${useGoogle ? "Google Places" : "OpenStreetMap"}; ` +
       `${leads.length} have a website or email` +

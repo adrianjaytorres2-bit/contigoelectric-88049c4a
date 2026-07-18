@@ -57,7 +57,7 @@
         <span id="dot-smtp" class="dot" title="SMTP (sending)"></span>
         <span id="dot-imap" class="dot" title="IMAP (replies)"></span>
       </div>
-      <span class="version">v3.2.101 · local &amp; private</span>
+      <span class="version">v3.2.102 · local &amp; private</span>
       <button id="btn-check-updates" class="btn tiny">🔄 Check for updates</button>
       <span id="update-status" class="update-status"></span>
       <button id="update-banner" class="btn tiny primary hidden">⬇️ Update ready — restart</button>
@@ -163,12 +163,25 @@
           <input id="lg-scrape" type="checkbox" checked />
           Scan each website for an email address (slower, but finds contacts)
         </label>
+        <label class="check">
+          <input id="lg-independent" type="checkbox" />
+          Prefer small/independent businesses (filter out chains &amp; franchises)
+        </label>
+        <label id="lg-maxreviews-wrap" class="hidden">Max reviews (Google Places only, optional)
+          <input id="lg-maxreviews" type="number" min="1" placeholder="e.g. 150" />
+        </label>
         <button class="btn primary big" id="btn-findleads">🔎 Find leads</button>
       </div>
       <p class="hint">
         Results drop straight into your <b>Leads</b> list as “new,” ready to audit. Businesses with no public
         email still come in with their website — you can audit them and add an email later. Data comes from
         OpenStreetMap; coverage varies by area, so try a few business-type wordings if results are thin.
+      </p>
+      <p class="hint">
+        💡 <b>Prefer small/independent</b> combines three signals: OpenStreetMap franchise tags, businesses
+        appearing at multiple locations in this search, and an AI check of each business name for recognizable
+        chains/franchises — no manual blocklist to maintain. Add a max review count too (Google Places only) to
+        also skip anything with a big review count, a common sign of a large chain.
       </p>
       <div class="console-wrap">
         <div class="console-head"><span>Search log</span></div>
@@ -418,6 +431,11 @@
       <div class="guide-card">
         <h2>Scheduling a send</h2>
         <p>The <b>🕒 Schedule</b> button (Dashboard, step 4) queues your current drafted batch to send automatically at a chosen time, with three reasoned presets — or pick a custom time. <b>The app has to stay open</b> for the schedule to fire; it's not a background service. If you close the app before the scheduled time, the send is still queued and will run (or catch up) the next time you open the app.</p>
+      </div>
+
+      <div class="guide-card">
+        <h2>Preferring small/independent businesses</h2>
+        <p>The <b>Find Leads</b> page has a <b>"Prefer small/independent businesses"</b> checkbox that filters out chains and franchises using three signals: OpenStreetMap's franchise/brand tags, businesses appearing at more than one location in the same search (a strong chain signal even without any tags), and an AI check of each remaining business name for recognizable national/regional chains. Nothing is hardcoded — the AI check works for any business type or brand, the same way business-type search already generalizes. Add a <b>max review count</b> (Google Places searches only) to also skip anything with a big review count, another common chain signal.</p>
       </div>
 
       <div class="guide-card">

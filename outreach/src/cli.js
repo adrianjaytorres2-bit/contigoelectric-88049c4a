@@ -521,11 +521,15 @@ async function main() {
       const query = args[0];
       const location = args[1];
       if (!query || !location)
-        die('usage: outreach findleads "<business type>" "<location>" [--limit N] [--no-scrape]');
+        die('usage: outreach findleads "<business type>" "<location>" [--limit N] [--no-scrape] [--independent] [--max-reviews N]');
       const limit = Number(flag(args, "--limit") || 50);
       const scrapeEmails = !args.includes("--no-scrape");
-      const results = await findLeads({ query, location, limit, scrapeEmails }, (msg) =>
-        console.log(msg)
+      const preferIndependent = args.includes("--independent");
+      const maxReviewsFlag = flag(args, "--max-reviews");
+      const maxReviews = typeof maxReviewsFlag === "string" ? Number(maxReviewsFlag) : null;
+      const results = await findLeads(
+        { query, location, limit, scrapeEmails, preferIndependent, maxReviews },
+        (msg) => console.log(msg)
       );
       let added = 0,
         dupe = 0,
@@ -691,8 +695,10 @@ Usage:
                                    Manually add a single lead
   outreach quicksend --email a@b.com --subject "..." --body "..." [--name] [--company]
                                    Write + send a one-off email immediately, no audit/draft needed
-  outreach findleads "<type>" "<location>" [--limit N] [--no-scrape]
+  outreach findleads "<type>" "<location>" [--limit N] [--no-scrape] [--independent] [--max-reviews N]
                                    Generate leads from OpenStreetMap (free) — e.g. "plumber" "Tampa, FL"
+                                   --independent filters out chains/franchises (AI + duplicate-name detection)
+                                   --max-reviews N also skips Google Places results with more than N reviews
   outreach audit [--limit N]       Audit websites of new leads in headless Chromium
   outreach draft [--limit N]       Write personalized emails with Claude for audited leads
   outreach setdraft <email> [--subject "..."] [--body "..."]

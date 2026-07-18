@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 import fs from "node:fs";
-import { loadConfig } from "./config.js";
+import { loadConfig, effectiveDailyCap, abVariantFor } from "./config.js";
 import * as store from "./store.js";
 import { csvToObjects } from "./csv.js";
 import { auditSites } from "./audit.js";
 import { draftEmail, draftFollowup, classifyReply } from "./writer.js";
-import { transport, sendEmail, sleep, sentToday, toHtmlEmail } from "./sender.js";
+import { transport, sendEmail, sleep, sentToday, toHtmlEmail, appendUnsubscribeFooter } from "./sender.js";
 import { fetchReplies } from "./inbox.js";
 import { findLeads } from "./leadgen.js";
 import { writeReport } from "./report.js";
@@ -36,6 +36,7 @@ async function main() {
         if (!email || !website) { skipped++; continue; }
         const id = store.leadId(email, website);
         if (db.leads[id]) { skipped++; continue; } // dedupe across imports
+        const dupeCompany = store.findByCompany(db, r.company || r.business);
         db.leads[id] = {
           id,
           name: r.name || r.contact || "",
@@ -46,8 +47,13 @@ async function main() {
           languageOverride: r.language || null,
           status: STATUS.NEW,
           importedAt: new Date().toISOString(),
+          notes: "",
+          tags: [],
           followups: [],
         };
+        if (dupeCompany) {
+          console.log(`  ⚠ "${r.company || r.business}" looks like a duplicate of existing lead ${dupeCompany.email} — added anyway, review manually.`);
+        }
         added++;
       }
       store.save(db);
@@ -64,10 +70,18 @@ async function main() {
       const website = store.normalizeUrl(flag(args, "--website") || "");
       const industry = flag(args, "--industry") || "";
       if (!email || typeof email !== "string") die("usage: outreach addlead --email a@b.com [--name] [--company] [--website] [--industry]");
+      if (store.isSuppressed(db, email)) {
+        console.log(`${email} is on your suppression list (unsubscribed) — not added. Use \`unsuppress\` first if this is a mistake.`);
+        break;
+      }
       const id = store.leadId(email, website);
       if (db.leads[id]) {
         console.log(`Lead already exists: ${email}`);
         break;
+      }
+      const dupeCompany = company ? store.findByCompany(db, company) : null;
+      if (dupeCompany) {
+        console.log(`⚠ "${company}" looks like a duplicate of existing lead ${dupeCompany.email} — adding anyway.`);
       }
       db.leads[id] = {
         id,
@@ -80,6 +94,8 @@ async function main() {
         status: STATUS.NEW,
         importedAt: new Date().toISOString(),
         source: "manual",
+        notes: "",
+        tags: [],
         followups: [],
       };
       store.save(db);
@@ -95,16 +111,18 @@ async function main() {
       const body = flag(args, "--body");
       if (!email || !subject || !body || typeof email !== "string")
         die('usage: outreach quicksend --email a@b.com --subject "..." --body "..." [--name] [--company]');
+      if (store.isSuppressed(db, email)) die(`${email} is on your suppression list (unsubscribed) — refusing to send.`);
       const name = flag(args, "--name") || "";
       const company = flag(args, "--company") || "";
       const website = store.normalizeUrl(flag(args, "--website") || "");
       const id = store.leadId(email, website || email);
+      const finalBody = appendUnsubscribeFooter(body, config);
       const t = transport();
       const messageId = await sendEmail(t, {
         to: email,
         subject,
-        body,
-        ...(config.htmlEmails ? { html: toHtmlEmail(body, config.senderName) } : {}),
+        body: finalBody,
+        ...(config.htmlEmails ? { html: toHtmlEmail(finalBody, config.senderName) } : {}),
       });
       db.leads[id] = {
         id,
@@ -118,6 +136,8 @@ async function main() {
         sentAt: new Date().toISOString(),
         messageId,
         source: "manual",
+        notes: "",
+        tags: [],
         draft: { subject, body, quality_score: null, flaws: [] },
         followups: [],
       };
@@ -172,9 +192,24 @@ async function main() {
       const audited = store.leadsByStatus(db, STATUS.AUDITED).slice(0, limit);
       if (!audited.length) return console.log("No audited leads to draft. Run `audit` first.");
       for (const lead of audited) {
+        if (store.isSuppressed(db, lead.email)) {
+          lead.status = STATUS.SKIPPED;
+          lead.skipReason = "unsubscribed — on suppression list";
+          console.log(`Skipping ${lead.email}: unsubscribed (no draft written, no cost).`);
+          store.save(db);
+          continue;
+        }
         process.stdout.write(`Drafting for ${lead.company || lead.website}... `);
         try {
-          const draft = await draftEmail(lead, config);
+          let draftConfig = config;
+          let variant = null;
+          if (config.abTestEnabled) {
+            variant = abVariantFor(lead.id);
+            const variantStyle = variant === "A" ? config.abVariantAStyle : config.abVariantBStyle;
+            draftConfig = { ...config, emailStyle: variantStyle };
+          }
+          const draft = await draftEmail(lead, draftConfig);
+          if (variant) draft.variant = variant;
           lead.draft = draft;
           if (draft.quality_score < config.minQualityScore) {
             lead.status = STATUS.SKIPPED;
@@ -210,15 +245,21 @@ async function main() {
       const dryRun = args.includes("--dry-run");
       const drafted = store.leadsByStatus(db, STATUS.DRAFTED);
       if (!drafted.length) return console.log("Nothing to send. Run `draft` first.");
-      const sendable = drafted.filter((l) => l.email);
-      const missing = drafted.length - sendable.length;
+      const suppressedCount = drafted.filter((l) => store.isSuppressed(db, l.email)).length;
+      const sendable = drafted.filter((l) => l.email && !store.isSuppressed(db, l.email));
+      const missing = drafted.length - sendable.length - suppressedCount;
       if (missing)
         console.log(
           `${missing} drafted lead(s) have no email address — skipping them. Add an email to those leads to reach them.`
         );
+      if (suppressedCount) console.log(`${suppressedCount} drafted lead(s) are unsubscribed — skipping them.`);
       if (!sendable.length) return console.log("No drafted leads have an email address to send to.");
-      const budget = config.dailySendCap - sentToday(db);
-      if (budget <= 0) return console.log("Daily send cap reached. Try again tomorrow.");
+      const cap = effectiveDailyCap(config);
+      const budget = cap - sentToday(db);
+      if (budget <= 0)
+        return console.log(
+          `Daily send cap reached (${cap}${config.warmupEnabled ? ", warmup-limited" : ""}). Try again tomorrow.`
+        );
       const batch = sendable.slice(0, budget);
       const t = dryRun ? null : transport();
       for (const lead of batch) {
@@ -227,11 +268,12 @@ async function main() {
           continue;
         }
         try {
+          const finalBody = appendUnsubscribeFooter(lead.draft.body, config);
           const messageId = await sendEmail(t, {
             to: lead.email,
             subject: lead.draft.subject,
-            body: lead.draft.body,
-            ...(config.htmlEmails ? { html: toHtmlEmail(lead.draft.body, config.senderName) } : {}),
+            body: finalBody,
+            ...(config.htmlEmails ? { html: toHtmlEmail(finalBody, config.senderName) } : {}),
           });
           lead.status = STATUS.SENT;
           lead.sentAt = new Date().toISOString();
@@ -261,6 +303,7 @@ async function main() {
       const now = Date.now();
       const due = Object.values(db.leads).filter((l) => {
         if (l.status !== STATUS.SENT) return false; // replied leads are auto-paused
+        if (store.isSuppressed(db, l.email)) return false;
         if ((l.followups || []).length >= config.maxFollowups) return false;
         const last = l.followups?.length
           ? l.followups[l.followups.length - 1].sentAt
@@ -268,7 +311,7 @@ async function main() {
         return now - Date.parse(last) > config.followupAfterDays * 86400_000;
       });
       if (!due.length) return console.log("No follow-ups due.");
-      const budget = config.dailySendCap - sentToday(db);
+      const budget = effectiveDailyCap(config) - sentToday(db);
       const batch = due.slice(0, Math.max(0, budget));
       const t = dryRun ? null : transport();
       for (const lead of batch) {
@@ -280,12 +323,13 @@ async function main() {
             console.log(`[dry-run]\n  Subject: ${fu.subject}\n  ${fu.body.replace(/\n/g, "\n  ")}`);
             continue;
           }
+          const fuBody = appendUnsubscribeFooter(fu.body, config);
           const messageId = await sendEmail(t, {
             to: lead.email,
             subject: fu.subject,
-            body: fu.body,
+            body: fuBody,
             inReplyTo: lead.messageId,
-            ...(config.htmlEmails ? { html: toHtmlEmail(fu.body, config.senderName) } : {}),
+            ...(config.htmlEmails ? { html: toHtmlEmail(fuBody, config.senderName) } : {}),
           });
           lead.followups.push({ ...fu, sentAt: new Date().toISOString(), messageId });
           store.save(db);
@@ -307,8 +351,10 @@ async function main() {
         const { intent, summary } = await classifyReply(lead, text);
         lead.status = STATUS.REPLIED;
         lead.reply = { intent, summary, subject, receivedAt: new Date().toISOString() };
+        if (intent === "unsubscribe") store.suppress(db, lead.email, "requested via reply");
         store.save(db);
-        const marker = intent === "interested" ? "🔥" : intent === "maybe_later" ? "⏳" : "—";
+        const marker =
+          intent === "interested" ? "🔥" : intent === "maybe_later" ? "⏳" : intent === "unsubscribe" ? "🚫" : "—";
         console.log(`${marker} ${lead.name} <${lead.email}> [${intent}]: ${summary}`);
       }
       break;
@@ -324,8 +370,116 @@ async function main() {
       const { intent, summary } = await classifyReply(lead, text);
       lead.status = STATUS.REPLIED;
       lead.reply = { intent, summary, receivedAt: new Date().toISOString() };
+      if (intent === "unsubscribe") store.suppress(db, lead.email, "requested via reply");
       store.save(db);
       console.log(`Recorded reply from ${email}: [${intent}] ${summary}`);
+      break;
+    }
+
+    case "suppress": {
+      // Manually opt someone out permanently: outreach suppress a@b.com [--reason "..."]
+      const email = args[0];
+      const reason = flag(args, "--reason") || "manual";
+      if (!email) die("usage: outreach suppress <email> [--reason \"...\"]");
+      store.suppress(db, email, reason);
+      store.save(db);
+      console.log(`Suppressed ${email} — will never be emailed by this tool again unless unsuppressed.`);
+      break;
+    }
+
+    case "unsuppress": {
+      const email = args[0];
+      if (!email) die("usage: outreach unsuppress <email>");
+      store.unsuppress(db, email);
+      store.save(db);
+      console.log(`Removed ${email} from the suppression list.`);
+      break;
+    }
+
+    case "note": {
+      // outreach note a@b.com --text "..." [--append]
+      const email = args[0];
+      const text = flag(args, "--text");
+      const append = args.includes("--append");
+      const lead = Object.values(db.leads).find((l) => l.email === email);
+      if (!lead || typeof text !== "string") die('usage: outreach note <email> --text "..." [--append]');
+      lead.notes = append && lead.notes ? `${lead.notes}\n${text}` : text;
+      store.save(db);
+      console.log(`Updated notes for ${email}.`);
+      break;
+    }
+
+    case "tag": {
+      // outreach tag a@b.com --add tag1,tag2 --remove tag3
+      const email = args[0];
+      const lead = Object.values(db.leads).find((l) => l.email === email);
+      if (!lead) die("usage: outreach tag <email> [--add tag1,tag2] [--remove tag3]");
+      const toAdd = flag(args, "--add");
+      const toRemove = flag(args, "--remove");
+      const tags = new Set(lead.tags || []);
+      if (typeof toAdd === "string") toAdd.split(",").map((t) => t.trim()).filter(Boolean).forEach((t) => tags.add(t));
+      if (typeof toRemove === "string") toRemove.split(",").map((t) => t.trim()).forEach((t) => tags.delete(t));
+      lead.tags = [...tags];
+      store.save(db);
+      console.log(`Tags for ${email}: ${lead.tags.join(", ") || "(none)"}`);
+      break;
+    }
+
+    case "export": {
+      // outreach export <out.csv> [--status drafted] [--emails a@b.com,c@d.com]
+      const out = args[0];
+      const statusFilter = flag(args, "--status");
+      const emailFilter = flag(args, "--emails");
+      if (!out) die("usage: outreach export <out.csv> [--status new|audited|drafted|sent|replied|skipped] [--emails a,b]");
+      let leads = Object.values(db.leads);
+      if (typeof statusFilter === "string") leads = leads.filter((l) => l.status === statusFilter);
+      if (typeof emailFilter === "string") {
+        const wanted = new Set(emailFilter.split(",").map((e) => e.trim().toLowerCase()).filter(Boolean));
+        leads = leads.filter((l) => wanted.has((l.email || "").toLowerCase()));
+      }
+      const cols = ["name", "email", "company", "website", "industry", "status", "score", "notes", "tags", "reply_intent"];
+      const escCsv = (v) => {
+        const s = String(v ?? "");
+        return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+      };
+      const rows = [cols.join(",")];
+      for (const l of leads) {
+        rows.push(
+          [
+            l.name,
+            l.email,
+            l.company,
+            l.website,
+            l.industry,
+            l.status,
+            l.draft?.quality_score ?? "",
+            l.notes || "",
+            (l.tags || []).join(";"),
+            l.reply?.intent || "",
+          ]
+            .map(escCsv)
+            .join(",")
+        );
+      }
+      fs.writeFileSync(out, rows.join("\n"));
+      console.log(`Exported ${leads.length} lead(s) to ${out}.`);
+      break;
+    }
+
+    case "bulkdelete": {
+      // outreach bulkdelete --emails a@b.com,c@d.com
+      const list = flag(args, "--emails");
+      if (typeof list !== "string") die("usage: outreach bulkdelete --emails a@b.com,c@d.com");
+      const targets = new Set(list.split(",").map((e) => e.trim().toLowerCase()).filter(Boolean));
+      let removed = 0;
+      for (const [id, lead] of Object.entries(db.leads)) {
+        if (targets.has((lead.email || "").toLowerCase())) {
+          delete db.leads[id];
+          removed++;
+        }
+      }
+      store.save(db);
+      console.log(`Deleted ${removed} lead(s).`);
       break;
     }
 
@@ -340,15 +494,22 @@ async function main() {
         console.log(msg)
       );
       let added = 0,
-        dupe = 0;
+        dupe = 0,
+        suppressed = 0,
+        companyDupe = 0;
       for (const r of results) {
         const website = store.normalizeUrl(r.website);
         if (!r.email && !website) continue;
+        if (r.email && store.isSuppressed(db, r.email)) {
+          suppressed++;
+          continue;
+        }
         const id = store.leadId(r.email, website);
         if (db.leads[id]) {
           dupe++;
           continue;
         }
+        if (store.findByCompany(db, r.company)) companyDupe++;
         db.leads[id] = {
           id,
           name: r.name,
@@ -360,6 +521,8 @@ async function main() {
           status: STATUS.NEW,
           importedAt: new Date().toISOString(),
           source: "leadgen",
+          notes: "",
+          tags: [],
           followups: [],
         };
         added++;
@@ -367,7 +530,7 @@ async function main() {
       store.save(db);
       const withEmail = results.filter((r) => r.email).length;
       console.log(
-        `Added ${added} new lead(s) (${dupe} already in your list). ${withEmail} have an email; the rest have a website you can audit and add an email to later.`
+        `Added ${added} new lead(s) (${dupe} already in your list${suppressed ? `, ${suppressed} unsubscribed and skipped` : ""}${companyDupe ? `, ${companyDupe} possible company duplicates — review manually` : ""}). ${withEmail} have an email; the rest have a website you can audit and add an email to later.`
       );
       break;
     }
@@ -382,8 +545,13 @@ async function main() {
         (l) => l.status === STATUS.SKIPPED && (!email || l.email === email)
       );
       let requeued = 0;
+      let blocked = 0;
       const noDraft = [];
       for (const l of skipped) {
+        if (store.isSuppressed(db, l.email)) {
+          blocked++;
+          continue;
+        }
         if (l.draft) {
           l.status = STATUS.DRAFTED;
           l.overridden = true;
@@ -393,6 +561,7 @@ async function main() {
           noDraft.push(l);
         }
       }
+      if (blocked) console.log(`${blocked} skipped lead(s) are unsubscribed and cannot be overridden.`);
       store.save(db);
       console.log(`Overrode ${requeued} skipped lead(s) — now queued to send.`);
       if (noDraft.length) {
@@ -441,6 +610,12 @@ Usage:
   outreach followup [--dry-run]    Send due follow-ups to non-repliers
   outreach inbox                   Pull replies via IMAP and classify intent
   outreach reply <email> --text "" Record + classify a reply manually
+  outreach suppress <email> [--reason "..."]   Permanently opt an address out (never emailed again)
+  outreach unsuppress <email>      Remove an address from the suppression list
+  outreach note <email> --text "..." [--append]   Set or append a note on a lead
+  outreach tag <email> [--add tag1,tag2] [--remove tag3]   Manage tags on a lead
+  outreach export <out.csv> [--status drafted]    Export leads to CSV
+  outreach bulkdelete --emails a@b.com,c@d.com    Delete multiple leads at once
   outreach report                  Generate data/report.html pipeline overview
   outreach status                  Pipeline summary`);
   }

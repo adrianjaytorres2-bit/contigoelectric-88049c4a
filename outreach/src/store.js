@@ -6,12 +6,14 @@ import { DATA_DIR } from "./config.js";
 const DB_FILE = path.join(DATA_DIR, "db.json");
 
 function empty() {
-  return { leads: {}, meta: { createdAt: new Date().toISOString() } };
+  return { leads: {}, suppressed: {}, meta: { createdAt: new Date().toISOString() } };
 }
 
 export function load() {
   if (!fs.existsSync(DB_FILE)) return empty();
-  return JSON.parse(fs.readFileSync(DB_FILE, "utf8"));
+  const db = JSON.parse(fs.readFileSync(DB_FILE, "utf8"));
+  if (!db.suppressed) db.suppressed = {}; // upgrade older data files
+  return db;
 }
 
 export function save(db) {
@@ -55,4 +57,42 @@ export const STATUS = {
 
 export function leadsByStatus(db, status) {
   return Object.values(db.leads).filter((l) => l.status === status);
+}
+
+// ---------- suppression (permanent do-not-email list) ----------
+// Separate from per-lead `status` — suppression survives re-imports, re-runs
+// findleads, and manual re-adds, so an unsubscribed address never gets
+// emailed again by this tool no matter how it re-enters the lead list.
+
+export function isSuppressed(db, email) {
+  return !!db.suppressed?.[(email || "").toLowerCase()];
+}
+
+export function suppress(db, email, reason = "manual") {
+  if (!email) return;
+  db.suppressed[email.toLowerCase()] = { addedAt: new Date().toISOString(), reason };
+}
+
+export function unsuppress(db, email) {
+  if (!email) return;
+  delete db.suppressed[email.toLowerCase()];
+}
+
+// ---------- company-level dedupe ----------
+// Loose match: lowercase, strip common suffixes (LLC, Inc, Co, Corp...) and
+// punctuation, so "Bob's Plumbing, LLC" and "Bob's Plumbing Inc." collide.
+
+export function normalizeCompany(name) {
+  return (name || "")
+    .toLowerCase()
+    .replace(/[.,'’]/g, "")
+    .replace(/\b(llc|inc|co|corp|corporation|ltd|company)\b/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export function findByCompany(db, company) {
+  const norm = normalizeCompany(company);
+  if (!norm) return null;
+  return Object.values(db.leads).find((l) => normalizeCompany(l.company) === norm) || null;
 }

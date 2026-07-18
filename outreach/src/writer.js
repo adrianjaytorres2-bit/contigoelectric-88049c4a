@@ -190,9 +190,9 @@ const INTENT_SCHEMA = {
   properties: {
     intent: {
       type: "string",
-      enum: ["interested", "maybe_later", "not_now"],
+      enum: ["interested", "maybe_later", "not_now", "unsubscribe"],
       description:
-        "interested = wants to talk/asks questions; maybe_later = polite deferral, revisit later; not_now = rejection or unsubscribe.",
+        "interested = wants to talk/asks questions; maybe_later = polite deferral, revisit later; not_now = rejection but no explicit opt-out request; unsubscribe = explicitly asks to be removed/stop emailing/opt out.",
     },
     summary: { type: "string", description: "One-sentence summary of the reply." },
   },

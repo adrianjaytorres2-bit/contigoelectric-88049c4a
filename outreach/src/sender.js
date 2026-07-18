@@ -45,6 +45,19 @@ ${html}
 </div>`;
 }
 
+// Every send appends this — not left to the AI draft — so it's always present
+// regardless of edits. Commercial email law (e.g. CAN-SPAM) requires a clear
+// opt-out and, for a fully compliant footer, a real postal address.
+export function appendUnsubscribeFooter(body, config) {
+  const lines = [
+    "",
+    "---",
+    'Don\'t want future emails? Reply "unsubscribe" and you\'ll be removed immediately.',
+  ];
+  if (config.physicalAddress) lines.push(config.physicalAddress);
+  return body.replace(/\s+$/, "") + "\n\n" + lines.join("\n").trim();
+}
+
 export async function sendEmail(t, { to, subject, body, inReplyTo, html }) {
   const info = await t.mailer.sendMail({
     from: t.from,

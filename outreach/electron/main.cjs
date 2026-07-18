@@ -1,7 +1,40 @@
-const { app, BrowserWindow, ipcMain, dialog, shell } = require("electron");
+const { app, BrowserWindow, ipcMain, dialog, shell, safeStorage } = require("electron");
 const path = require("node:path");
 const fs = require("node:fs");
 const { spawn } = require("node:child_process");
+
+// ---------- credential encryption ----------
+// Secrets are encrypted at rest via the OS keychain/DPAPI/libsecret
+// (Electron's safeStorage). Falls back to plaintext only when OS-level
+// encryption isn't available on this machine. Encrypted values are tied to
+// this machine/user — they won't decrypt if settings.json is copied
+// elsewhere, which is expected.
+const ENC_PREFIX = "enc:v1:";
+const SECRET_FIELDS = ["anthropicApiKey", "smtpPass", "imapPass", "googleApiKey"];
+
+function encryptField(v) {
+  if (!v || typeof v !== "string" || v.startsWith(ENC_PREFIX)) return v;
+  if (!safeStorage.isEncryptionAvailable()) return v;
+  return ENC_PREFIX + safeStorage.encryptString(v).toString("base64");
+}
+function decryptField(v) {
+  if (!v || typeof v !== "string" || !v.startsWith(ENC_PREFIX)) return v;
+  try {
+    return safeStorage.decryptString(Buffer.from(v.slice(ENC_PREFIX.length), "base64"));
+  } catch {
+    return ""; // corrupted, or written on a different machine/user — fail safe
+  }
+}
+function encryptSecrets(s) {
+  const out = { ...s };
+  for (const f of SECRET_FIELDS) out[f] = encryptField(out[f]);
+  return out;
+}
+function decryptSecrets(s) {
+  const out = { ...s };
+  for (const f of SECRET_FIELDS) out[f] = decryptField(out[f]);
+  return out;
+}
 
 const APP_ROOT = path.join(__dirname, "..");
 const CLI = path.join(APP_ROOT, "src", "cli.js");
@@ -20,11 +53,21 @@ const defaultSettings = {
   emailStyle: "natural",
   emailLength: "medium",
   htmlEmails: false,
+  physicalAddress: "",
   minQualityScore: 40,
   dailySendCap: 50,
   secondsBetweenSends: 45,
   followupAfterDays: 4,
   maxFollowups: 2,
+  warmupEnabled: false,
+  warmupStartDate: null,
+  warmupStartCap: 5,
+  warmupTargetCap: 50,
+  warmupStepAmount: 5,
+  warmupStepDays: 3,
+  abTestEnabled: false,
+  abVariantAStyle: "natural",
+  abVariantBStyle: "direct",
   anthropicApiKey: "",
   smtpHost: "",
   smtpPort: "587",
@@ -45,17 +88,28 @@ function settingsFile() {
 
 function loadSettings() {
   try {
-    return { ...defaultSettings, ...JSON.parse(fs.readFileSync(settingsFile(), "utf8")) };
+    const onDisk = JSON.parse(fs.readFileSync(settingsFile(), "utf8"));
+    return decryptSecrets({ ...defaultSettings, ...onDisk });
   } catch {
     return { ...defaultSettings };
   }
 }
 
 function saveSettings(s) {
+  // Auto-set the warmup start date the first time warmup is turned on, so
+  // the ramp begins counting from today rather than requiring the user to
+  // pick a date themselves.
+  if (s.warmupEnabled && !s.warmupStartDate) {
+    s = { ...s, warmupStartDate: new Date().toISOString() };
+  }
+  if (!s.warmupEnabled) {
+    s = { ...s, warmupStartDate: null };
+  }
   fs.mkdirSync(app.getPath("userData"), { recursive: true });
-  fs.writeFileSync(settingsFile(), JSON.stringify(s, null, 2));
+  fs.writeFileSync(settingsFile(), JSON.stringify(encryptSecrets(s), null, 2));
   // Also write the generation config the engine reads.
   fs.writeFileSync(engineConfigFile(), JSON.stringify(engineConfig(s), null, 2));
+  return s;
 }
 
 function engineConfigFile() {
@@ -72,11 +126,21 @@ function engineConfig(s) {
     emailStyle: s.emailStyle || "natural",
     emailLength: s.emailLength || "medium",
     htmlEmails: !!s.htmlEmails,
+    physicalAddress: s.physicalAddress || "",
     minQualityScore: Number(s.minQualityScore) || 40,
     dailySendCap: Number(s.dailySendCap) || 50,
     secondsBetweenSends: Number(s.secondsBetweenSends) || 45,
     followupAfterDays: Number(s.followupAfterDays) || 4,
     maxFollowups: Number(s.maxFollowups) || 2,
+    warmupEnabled: !!s.warmupEnabled,
+    warmupStartDate: s.warmupStartDate || null,
+    warmupStartCap: Number(s.warmupStartCap) || 5,
+    warmupTargetCap: Number(s.warmupTargetCap) || Number(s.dailySendCap) || 50,
+    warmupStepAmount: Number(s.warmupStepAmount) || 5,
+    warmupStepDays: Number(s.warmupStepDays) || 3,
+    abTestEnabled: !!s.abTestEnabled,
+    abVariantAStyle: s.abVariantAStyle || "natural",
+    abVariantBStyle: s.abVariantBStyle || "direct",
   };
 }
 
@@ -103,6 +167,59 @@ function engineEnv(s) {
     ...(s.chromiumPath ? { OUTREACH_CHROMIUM: s.chromiumPath } : {}),
     ...(s.googleApiKey ? { GOOGLE_API_KEY: s.googleApiKey } : {}),
   };
+}
+
+// ---------- scheduled sends ----------
+// Persisted to disk so schedules survive an app restart; timers are re-armed
+// on startup. This only fires while the app is running — there is no
+// background service, so a scheduled send waits (visibly, in the list) until
+// you reopen the app if it was closed at the scheduled time.
+
+// setTimeout delays beyond ~24.8 days silently overflow to firing immediately
+// (Node/V8 32-bit int limit) — cap and self-reschedule to stay under that.
+const MAX_TIMEOUT_MS = 20 * 24 * 60 * 60 * 1000;
+const armedTimers = new Map(); // schedule id -> Timeout
+
+function schedulesFile() {
+  return path.join(app.getPath("userData"), "schedules.json");
+}
+function loadSchedules() {
+  try {
+    return JSON.parse(fs.readFileSync(schedulesFile(), "utf8"));
+  } catch {
+    return [];
+  }
+}
+function saveSchedules(list) {
+  fs.mkdirSync(app.getPath("userData"), { recursive: true });
+  fs.writeFileSync(schedulesFile(), JSON.stringify(list, null, 2));
+}
+
+function armSchedule(entry) {
+  const delay = Date.parse(entry.fireAt) - Date.now();
+  if (delay > MAX_TIMEOUT_MS) {
+    armedTimers.set(entry.id, setTimeout(() => armSchedule(entry), MAX_TIMEOUT_MS));
+    return;
+  }
+  armedTimers.set(entry.id, setTimeout(() => fireSchedule(entry.id), Math.max(0, delay)));
+}
+
+async function fireSchedule(id) {
+  armedTimers.delete(id);
+  const entry = loadSchedules().find((e) => e.id === id);
+  if (!entry) return;
+  if (running) {
+    // Something else is mid-run — don't drop the scheduled send, retry shortly.
+    armedTimers.set(id, setTimeout(() => fireSchedule(id), 60000));
+    return;
+  }
+  await runEngine([entry.type === "followup" ? "followup" : "send"]);
+  saveSchedules(loadSchedules().filter((e) => e.id !== id));
+  if (win && !win.isDestroyed()) win.webContents.send("schedule:fired", entry);
+}
+
+function armAllSchedules() {
+  for (const entry of loadSchedules()) armSchedule(entry);
 }
 
 // ---------- engine runner ----------
@@ -137,12 +254,30 @@ function runEngine(args, { nodeScript } = {}) {
 
 // ---------- state for the UI ----------
 
+// Mirrors src/config.js effectiveDailyCap — duplicated (rather than imported)
+// because this file is CommonJS and that module is ESM. Keep the two in sync
+// if the ramp formula changes.
+function effectiveDailyCap(config, now = Date.now()) {
+  if (!config.warmupEnabled || !config.warmupStartDate) return config.dailySendCap;
+  const startCap = Number(config.warmupStartCap) || 5;
+  const targetCap = Number(config.warmupTargetCap) || config.dailySendCap;
+  const stepAmount = Number(config.warmupStepAmount) || 5;
+  const stepDays = Number(config.warmupStepDays) || 3;
+  const daysElapsed = Math.floor((now - Date.parse(config.warmupStartDate)) / 86400000);
+  if (daysElapsed < 0) return startCap;
+  const steps = Math.floor(daysElapsed / stepDays);
+  const cap = startCap + steps * stepAmount;
+  return Math.max(startCap, Math.min(cap, targetCap));
+}
+
 function readState() {
   const dbFile = path.join(dataDir(), "db.json");
   let leads = [];
+  let suppressedCount = 0;
   try {
     const db = JSON.parse(fs.readFileSync(dbFile, "utf8"));
     leads = Object.values(db.leads);
+    suppressedCount = Object.keys(db.suppressed || {}).length;
   } catch {
     /* no data yet */
   }
@@ -155,6 +290,23 @@ function readState() {
       (l.followups || []).some((f) => f.sentAt && f.sentAt.startsWith(today))
   ).length;
   const settings = loadSettings();
+  const cap = effectiveDailyCap(settings);
+
+  // Analytics: overall + A/B variant reply performance.
+  const everSent = leads.filter((l) => l.sentAt);
+  const replied = leads.filter((l) => l.reply);
+  const byIntent = {};
+  for (const l of replied) byIntent[l.reply.intent] = (byIntent[l.reply.intent] || 0) + 1;
+  const variants = {};
+  for (const l of leads) {
+    const v = l.draft?.variant;
+    if (!v) continue;
+    variants[v] = variants[v] || { sent: 0, replied: 0, interested: 0 };
+    if (l.sentAt) variants[v].sent++;
+    if (l.reply) variants[v].replied++;
+    if (l.reply?.intent === "interested") variants[v].interested++;
+  }
+
   return {
     leads: leads.map((l) => ({
       id: l.id,
@@ -171,9 +323,22 @@ function readState() {
       sentAt: l.sentAt || null,
       followupCount: (l.followups || []).length,
       reply: l.reply || null,
+      notes: l.notes || "",
+      tags: l.tags || [],
+      variant: l.draft?.variant || null,
     })),
     counts,
     sentToday,
+    dailyCapToday: cap,
+    warmupActive: !!settings.warmupEnabled,
+    suppressedCount,
+    analytics: {
+      totalSent: everSent.length,
+      totalReplied: replied.length,
+      replyRate: everSent.length ? replied.length / everSent.length : 0,
+      byIntent,
+      variants,
+    },
     configured: {
       anthropic: !!settings.anthropicApiKey,
       smtp: !!(settings.smtpHost && settings.smtpUser && settings.smtpPass),
@@ -189,8 +354,8 @@ function readState() {
 ipcMain.handle("state:get", () => readState());
 ipcMain.handle("settings:get", () => loadSettings());
 ipcMain.handle("settings:save", (_e, s) => {
-  saveSettings({ ...loadSettings(), ...s });
-  return { ok: true };
+  const saved = saveSettings({ ...loadSettings(), ...s });
+  return { ok: true, settings: saved };
 });
 
 ipcMain.handle("leads:importDialog", async () => {
@@ -250,6 +415,62 @@ ipcMain.handle("browser:install", () => {
   return runEngine([pwCli, "install", "chromium"], { nodeScript: true });
 });
 
+ipcMain.handle("lead:note", (_e, { email, text, append }) => {
+  const args = ["note", email, "--text", text];
+  if (append) args.push("--append");
+  return runEngine(args);
+});
+ipcMain.handle("lead:tag", (_e, { email, add, remove }) => {
+  const args = ["tag", email];
+  if (add) args.push("--add", add);
+  if (remove) args.push("--remove", remove);
+  return runEngine(args);
+});
+ipcMain.handle("lead:suppress", (_e, { email, reason }) =>
+  runEngine(["suppress", email, ...(reason ? ["--reason", reason] : [])])
+);
+ipcMain.handle("lead:unsuppress", (_e, email) => runEngine(["unsuppress", email]));
+ipcMain.handle("lead:bulkDelete", (_e, emails) => runEngine(["bulkdelete", "--emails", emails.join(",")]));
+
+ipcMain.handle("schedule:create", (_e, { fireAt, type }) => {
+  const entry = {
+    id: `sched_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    fireAt,
+    type: type === "followup" ? "followup" : "send",
+    createdAt: new Date().toISOString(),
+  };
+  const list = loadSchedules();
+  list.push(entry);
+  saveSchedules(list);
+  armSchedule(entry);
+  return { ok: true, entry };
+});
+ipcMain.handle("schedule:list", () => loadSchedules());
+ipcMain.handle("schedule:cancel", (_e, id) => {
+  saveSchedules(loadSchedules().filter((e) => e.id !== id));
+  const t = armedTimers.get(id);
+  if (t) {
+    clearTimeout(t);
+    armedTimers.delete(id);
+  }
+  return { ok: true };
+});
+
+ipcMain.handle("leads:exportDialog", async (_e, { status, emails } = {}) => {
+  const { canceled, filePath } = await dialog.showSaveDialog(win, {
+    title: "Export leads to CSV",
+    defaultPath: "leads-export.csv",
+    filters: [{ name: "CSV files", extensions: ["csv"] }],
+  });
+  if (canceled || !filePath) return { ok: false, output: "Cancelled." };
+  const args = ["export", filePath];
+  if (status) args.push("--status", status);
+  if (emails && emails.length) args.push("--emails", emails.join(","));
+  const res = await runEngine(args);
+  if (res.ok) await shell.showItemInFolder(filePath);
+  return res;
+});
+
 // ---------- window ----------
 
 function createWindow() {
@@ -272,6 +493,7 @@ function createWindow() {
 
 app.whenReady().then(() => {
   createWindow();
+  armAllSchedules();
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });

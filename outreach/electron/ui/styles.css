@@ -311,3 +311,43 @@ td a { color: var(--blue); text-decoration: none; }
 }
 .modal-form input:focus, .modal-form textarea:focus { outline: none; border-color: var(--accent); }
 .modal-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px; }
+
+/* danger buttons */
+.btn.danger { background: #40232a; color: #ff9b9b; border: 1px solid rgba(248,113,113,0.35); }
+.btn.danger:hover { filter: brightness(1.25); }
+
+/* bulk action bar */
+.bulk-bar {
+  display: flex; align-items: center; gap: 12px;
+  background: rgba(245,165,36,0.1); border: 1px solid rgba(245,165,36,0.35);
+  border-radius: 10px; padding: 10px 16px; margin-bottom: 14px; font-size: 13.5px;
+}
+.bulk-bar.hidden { display: none; }
+#bulk-count { color: var(--accent-2); font-weight: 700; margin-right: auto; }
+.leads-footer-actions { margin-top: 14px; }
+#leads-table td:first-child, #leads-table th:first-child { width: 34px; text-align: center; }
+#leads-table input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
+
+/* notes/tags cell + details button */
+.tag-pill {
+  display: inline-block; background: var(--panel-2); color: var(--accent-2);
+  border: 1px solid var(--border); border-radius: 999px;
+  padding: 1px 8px; font-size: 11px; margin: 0 4px 4px 0;
+}
+.notes-preview { color: var(--muted); font-size: 12.5px; max-width: 220px; }
+
+/* schedule time presets */
+.time-presets { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+.preset-btn {
+  display: flex; flex-direction: column; gap: 3px; text-align: left;
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: 9px;
+  padding: 11px 14px; cursor: pointer; color: var(--text);
+}
+.preset-btn:hover { border-color: var(--accent); }
+.preset-btn b { font-size: 13.5px; }
+.preset-btn span { color: var(--muted); font-size: 12px; line-height: 1.4; }
+.preset-btn.selected { border-color: var(--accent); background: rgba(245,165,36,0.1); }
+.scheduled-item {
+  display: flex; justify-content: space-between; align-items: center;
+  background: var(--panel-2); border-radius: 8px; padding: 8px 12px; margin-top: 8px; font-size: 13px;
+}

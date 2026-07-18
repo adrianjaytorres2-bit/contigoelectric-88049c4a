@@ -38,7 +38,51 @@ const DEFAULTS = {
   // Audit
   auditTimeoutMs: 45000,
   screenshot: true,
+  // Optional physical mailing address included in the unsubscribe footer.
+  // Commercial email law (CAN-SPAM) requires a real postal address; leave
+  // blank only if you're aware of that requirement and accept the risk.
+  physicalAddress: "",
+  // Warmup — gradually ramps the daily send cap instead of using
+  // dailySendCap at full strength from day one, to protect sender reputation
+  // on a new domain/mailbox.
+  warmupEnabled: false,
+  warmupStartDate: null, // ISO date, set automatically the first time warmup is enabled
+  warmupStartCap: 5,
+  warmupTargetCap: 50,
+  warmupStepAmount: 5,
+  warmupStepDays: 3,
+  // A/B testing — alternates two email-voice styles across a drafting batch
+  // (stable per lead, so re-drafting the same lead keeps its variant) so
+  // reply rates can be compared in Analytics.
+  abTestEnabled: false,
+  abVariantAStyle: "natural",
+  abVariantBStyle: "direct",
 };
+
+// The cap actually enforced today. Ramps linearly from warmupStartCap to
+// warmupTargetCap in warmupStepAmount increments every warmupStepDays days,
+// starting from warmupStartDate. Falls back to the plain dailySendCap when
+// warmup is off or hasn't been started yet.
+export function effectiveDailyCap(config, now = Date.now()) {
+  if (!config.warmupEnabled || !config.warmupStartDate) return config.dailySendCap;
+  const startCap = Number(config.warmupStartCap) || 5;
+  const targetCap = Number(config.warmupTargetCap) || config.dailySendCap;
+  const stepAmount = Number(config.warmupStepAmount) || 5;
+  const stepDays = Number(config.warmupStepDays) || 3;
+  const daysElapsed = Math.floor((now - Date.parse(config.warmupStartDate)) / 86400000);
+  if (daysElapsed < 0) return startCap;
+  const steps = Math.floor(daysElapsed / stepDays);
+  const cap = startCap + steps * stepAmount;
+  return Math.max(startCap, Math.min(cap, targetCap));
+}
+
+// Stable A/B variant for a lead — same lead always gets the same variant
+// across re-drafts, and the split is ~50/50 across a batch.
+export function abVariantFor(leadId) {
+  let hash = 0;
+  for (let i = 0; i < leadId.length; i++) hash = (hash * 31 + leadId.charCodeAt(i)) | 0;
+  return Math.abs(hash) % 2 === 0 ? "A" : "B";
+}
 
 export function loadConfig() {
   const file = process.env.OUTREACH_CONFIG_FILE || path.join(ROOT, "outreach.config.json");

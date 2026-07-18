@@ -39,7 +39,8 @@ const actionButtons = [
   "#btn-import", "#btn-import-2", "#btn-audit", "#btn-draft",
   "#btn-send", "#btn-send-dry", "#btn-followup", "#btn-inbox", "#btn-report",
   "#btn-install-browser", "#btn-override", "#btn-findleads",
-  "#btn-add-lead", "#btn-quick-send",
+  "#btn-add-lead", "#btn-quick-send", "#btn-bulk-export", "#btn-bulk-delete",
+  "#btn-export-all",
 ];
 function setBusy(busy) {
   actionButtons.forEach((sel) => { const b = $(sel); if (b) b.disabled = busy; });
@@ -152,6 +153,7 @@ $("#form-quick-send").addEventListener("submit", async (e) => {
 let leadState = [];
 let leadFilter = "all";
 let leadQuery = "";
+let selectedEmails = new Set();
 
 $("#lead-search").addEventListener("input", (e) => {
   leadQuery = e.target.value.toLowerCase().trim();
@@ -166,27 +168,42 @@ $$("#lead-filters .chip").forEach((chip) =>
   })
 );
 
-function renderLeads() {
-  const rows = leadState
+function visibleLeads() {
+  return leadState
     .filter((l) => leadFilter === "all" || l.status === leadFilter)
     .filter((l) => {
       if (!leadQuery) return true;
-      return [l.name, l.company, l.email, l.website].some((v) =>
-        String(v || "").toLowerCase().includes(leadQuery)
-      );
+      const haystack = [l.name, l.company, l.email, l.website, ...(l.tags || [])];
+      return haystack.some((v) => String(v || "").toLowerCase().includes(leadQuery));
     });
+}
+
+function updateBulkBar() {
+  const n = selectedEmails.size;
+  $("#bulk-bar").classList.toggle("hidden", n === 0);
+  $("#bulk-count").textContent = `${n} selected`;
+}
+
+function renderLeads() {
+  const rows = visibleLeads();
   $("#leads-count").textContent = `${rows.length} of ${leadState.length} lead(s)`;
   $("#leads-table tbody").innerHTML =
     rows
       .map(
         (l) => `<tr>
+      <td><input type="checkbox" class="row-check" data-email="${esc(l.email)}" ${selectedEmails.has(l.email) ? "checked" : ""} /></td>
       <td>${esc(l.name) || "—"}<br><small>${esc(l.company)} · ${esc(l.email)}</small></td>
       <td><a href="${esc(l.website)}" target="_blank">${esc(l.website.replace(/^https?:\/\//, ""))}</a></td>
       <td><span class="badge ${esc(l.status)}">${esc(l.status)}</span>${
           l.reply ? `<br><span class="badge ${esc(l.reply.intent)}">${esc(l.reply.intent)}</span>` : ""
-        }</td>
+        }${l.variant ? `<br><span class="badge">variant ${esc(l.variant)}</span>` : ""}</td>
       <td>${l.score ?? "—"}</td>
       <td><small>${esc(l.skipReason || (l.flaws || []).slice(0, 2).join("; ") || (l.reply?.summary ?? ""))}</small></td>
+      <td>
+        ${(l.tags || []).map((t) => `<span class="tag-pill">${esc(t)}</span>`).join("")}
+        ${l.notes ? `<div class="notes-preview">${esc(l.notes.slice(0, 60))}${l.notes.length > 60 ? "…" : ""}</div>` : ""}
+        <button class="btn tiny" data-detail="${esc(l.email)}">✏️ Notes/tags</button>
+      </td>
       <td>${
         l.status === "skipped" && l.subject
           ? `<button class="btn tiny override" data-override="${esc(l.email)}">Send anyway</button>`
@@ -194,14 +211,96 @@ function renderLeads() {
       }</td>
     </tr>`
       )
-      .join("") || `<tr><td colspan="6" class="empty">No leads match — adjust the search or filter.</td></tr>`;
+      .join("") || `<tr><td colspan="8" class="empty">No leads match — adjust the search or filter.</td></tr>`;
 
   $$("#leads-table [data-override]").forEach((b) =>
     b.addEventListener("click", () =>
       runAction(`Overriding ${b.dataset.override}…`, () => window.outreach.runOverride(b.dataset.override))
     )
   );
+  $$("#leads-table [data-detail]").forEach((b) =>
+    b.addEventListener("click", () => openLeadDetail(b.dataset.detail))
+  );
+  $$("#leads-table .row-check").forEach((cb) =>
+    cb.addEventListener("change", () => {
+      if (cb.checked) selectedEmails.add(cb.dataset.email);
+      else selectedEmails.delete(cb.dataset.email);
+      updateBulkBar();
+    })
+  );
+
+  const allVisible = rows.map((l) => l.email);
+  $("#select-all-leads").checked = allVisible.length > 0 && allVisible.every((e) => selectedEmails.has(e));
+  updateBulkBar();
 }
+
+$("#select-all-leads").addEventListener("change", (e) => {
+  const rows = visibleLeads();
+  if (e.target.checked) rows.forEach((l) => selectedEmails.add(l.email));
+  else rows.forEach((l) => selectedEmails.delete(l.email));
+  renderLeads();
+});
+
+$("#btn-bulk-clear").addEventListener("click", () => {
+  selectedEmails.clear();
+  renderLeads();
+});
+
+$("#btn-bulk-delete").addEventListener("click", async () => {
+  const emails = [...selectedEmails];
+  if (!emails.length) return;
+  if (!confirm(`Permanently delete ${emails.length} lead(s)? This can't be undone.`)) return;
+  await runAction(`Deleting ${emails.length} lead(s)…`, () => window.outreach.bulkDelete(emails));
+  selectedEmails.clear();
+});
+
+$("#btn-bulk-export").addEventListener("click", () => {
+  const emails = [...selectedEmails];
+  if (!emails.length) return;
+  runAction(`Exporting ${emails.length} lead(s)…`, () => window.outreach.exportLeads({ emails }));
+});
+
+$("#btn-export-all").addEventListener("click", () => {
+  runAction("Exporting all leads…", () => window.outreach.exportLeads({}));
+});
+
+// ---------- lead detail modal (notes, tags, unsubscribe) ----------
+function openLeadDetail(email) {
+  const lead = leadState.find((l) => l.email === email);
+  if (!lead) return;
+  const form = $("#form-lead-detail");
+  form.email.value = email;
+  form.notes.value = lead.notes || "";
+  form.tags.value = (lead.tags || []).join(", ");
+  $("#ld-title").textContent = lead.name || email;
+  $("#ld-meta").textContent = `${lead.company || ""} · ${email}`;
+  openModal("modal-lead-detail");
+}
+
+$("#form-lead-detail").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const f = e.target;
+  const email = f.email.value;
+  const notes = f.notes.value.trim();
+  const tags = f.tags.value.trim();
+  f.closest(".modal-overlay").classList.add("hidden");
+  await window.outreach.setNote({ email, text: notes, append: false });
+  await window.outreach.setTags({ email, add: tags, remove: "" });
+  // Tags field is a full replacement in the UI's mental model — clear any tags
+  // not present in the new list before re-adding, by diffing against current state.
+  const lead = leadState.find((l) => l.email === email);
+  const wanted = new Set(tags.split(",").map((t) => t.trim()).filter(Boolean));
+  const toRemove = (lead?.tags || []).filter((t) => !wanted.has(t));
+  if (toRemove.length) await window.outreach.setTags({ email, add: "", remove: toRemove.join(",") });
+  refresh();
+});
+
+$("#btn-suppress-lead").addEventListener("click", async () => {
+  const email = $("#form-lead-detail").email.value;
+  if (!confirm(`Unsubscribe ${email}? They will never be emailed by this tool again unless you manually undo it.`)) return;
+  $("#modal-lead-detail").classList.add("hidden");
+  await runAction(`Unsubscribing ${email}…`, () => window.outreach.suppressLead({ email, reason: "manual" }));
+});
 
 // ---------- state rendering ----------
 const esc = (s) =>
@@ -227,10 +326,16 @@ async function refresh() {
     ["Drafted", c.drafted || 0],
     ["Sent", c.sent || 0],
     ["Replied", c.replied || 0],
-    ["Sent today", state.sentToday],
+    ["Sent today", `${state.sentToday} / ${state.dailyCapToday}`],
   ]
     .map(([label, n]) => `<div class="stat"><b>${n}</b><span>${label}</span></div>`)
     .join("");
+
+  // warmup hint
+  $("#warmup-cap-hint").classList.toggle("hidden", !state.warmupActive);
+  if (state.warmupActive) {
+    $("#warmup-cap-hint").textContent = `🌱 Warmup active — today's cap is ${state.dailyCapToday}. See Analytics for the full ramp.`;
+  }
 
   // override button: show when skipped leads still have a draft to send
   const overridable = state.leads.filter((l) => l.status === "skipped" && l.subject).length;
@@ -243,6 +348,9 @@ async function refresh() {
   // leads navigator
   leadState = state.leads;
   renderLeads();
+
+  // analytics
+  renderAnalytics(state);
 
   // emails
   const withDrafts = state.leads.filter((l) => l.subject);
@@ -287,6 +395,145 @@ async function refresh() {
     })
   );
 }
+
+// ---------- analytics ----------
+const STYLE_LABELS = {
+  natural: "Natural & Human", casual: "Casual & Friendly", professional: "Professional & Polished",
+  direct: "Direct & No-Fluff", story: "Story-Driven Opener", witty: "Witty & Light Humor",
+  consultative: "Warm & Consultative",
+};
+const pct = (n) => `${Math.round(n * 100)}%`;
+
+function renderAnalytics(state) {
+  const a = state.analytics;
+  $("#analytics-stats").innerHTML = [
+    ["Emails sent (ever)", a.totalSent],
+    ["Replies received", a.totalReplied],
+    ["Reply rate", a.totalSent ? pct(a.replyRate) : "—"],
+    ["Unsubscribed", state.suppressedCount],
+  ]
+    .map(([label, n]) => `<div class="stat"><b>${n}</b><span>${label}</span></div>`)
+    .join("");
+
+  // A/B variant comparison
+  const variants = a.variants || {};
+  const hasVariants = variants.A || variants.B;
+  $("#ab-card").classList.toggle("hidden", !hasVariants);
+  if (hasVariants) {
+    $("#ab-results").innerHTML = ["A", "B"]
+      .map((v) => {
+        const d = variants[v] || { sent: 0, replied: 0, interested: 0 };
+        const rate = d.sent ? d.replied / d.sent : 0;
+        return `<div style="margin-bottom:12px;">
+        <b>Variant ${v}</b> <span style="color:var(--muted);font-size:12.5px;">(${d.sent} sent · ${d.replied} replied · ${d.interested} interested)</span>
+        <div class="scale-bar" style="margin-top:6px;background:var(--panel-2);">
+          <div style="height:100%;width:${Math.min(100, rate * 100)}%;background:var(--accent);border-radius:6px;"></div>
+        </div>
+        <span style="font-size:12.5px;color:var(--accent-2);">${pct(rate)} reply rate</span>
+      </div>`;
+      })
+      .join("") + `<p class="note">Enable/configure variants in Settings → A/B testing.</p>`;
+  }
+
+  // warmup status
+  if (state.warmupActive) {
+    $("#warmup-card").classList.remove("hidden");
+    $("#warmup-status").innerHTML = `<p>🌱 Warmup is active. Today's send cap is <b>${state.dailyCapToday}</b>. It steps up automatically over time — check back as you approach your target cap.</p>`;
+  } else {
+    $("#warmup-card").classList.add("hidden");
+  }
+
+  // reply intent breakdown
+  const byIntent = a.byIntent || {};
+  const intentLabels = { interested: "🔥 Interested", maybe_later: "⏳ Maybe later", not_now: "Not now", unsubscribe: "🚫 Unsubscribed" };
+  const total = Object.values(byIntent).reduce((s, n) => s + n, 0);
+  $("#intent-breakdown").innerHTML =
+    total === 0
+      ? `<p class="hint" style="margin:0;">No replies recorded yet.</p>`
+      : Object.entries(intentLabels)
+          .map(([key, label]) => {
+            const n = byIntent[key] || 0;
+            return `<div style="margin-bottom:8px;"><span>${label}: <b>${n}</b></span></div>`;
+          })
+          .join("");
+}
+
+// ---------- schedule send ----------
+let selectedPreset = null;
+
+function nextWeekdayAt(hour, minute, weekdays) {
+  const d = new Date();
+  d.setSeconds(0, 0);
+  for (let i = 1; i <= 8; i++) {
+    const cand = new Date(d.getTime() + i * 86400000);
+    cand.setHours(hour, minute, 0, 0);
+    if (weekdays.includes(cand.getDay()) && cand > new Date()) return cand;
+  }
+  return d;
+}
+function tomorrowAt(hour, minute) {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  d.setHours(hour, minute, 0, 0);
+  return d;
+}
+function toLocalInputValue(date) {
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+$("#btn-schedule").addEventListener("click", () => {
+  openModal("modal-schedule");
+  renderScheduledList();
+});
+
+$$(".preset-btn").forEach((btn) =>
+  btn.addEventListener("click", () => {
+    $$(".preset-btn").forEach((b) => b.classList.remove("selected"));
+    btn.classList.add("selected");
+    selectedPreset = btn.dataset.preset;
+    let when;
+    if (selectedPreset === "tue-morning") when = nextWeekdayAt(9, 30, [2, 3, 4]);
+    else if (selectedPreset === "early-morning") when = tomorrowAt(7, 0);
+    else if (selectedPreset === "afternoon") when = tomorrowAt(13, 30);
+    if (when) $("#form-schedule").when.value = toLocalInputValue(when);
+  })
+);
+
+$("#form-schedule").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const when = e.target.when.value;
+  if (!when) return alert("Pick a time (choose a preset above or set a custom time).");
+  const fireAt = new Date(when).toISOString();
+  if (new Date(fireAt) <= new Date()) return alert("Pick a time in the future.");
+  await window.outreach.scheduleCreate({ fireAt, type: "send" });
+  e.target.reset();
+  $$(".preset-btn").forEach((b) => b.classList.remove("selected"));
+  renderScheduledList();
+});
+
+async function renderScheduledList() {
+  const list = await window.outreach.scheduleList();
+  $("#scheduled-list").innerHTML =
+    list
+      .map(
+        (s) => `<div class="scheduled-item">
+      <span>🕒 ${new Date(s.fireAt).toLocaleString()} — ${esc(s.type)}</span>
+      <button class="btn tiny danger" data-cancel-schedule="${esc(s.id)}">Cancel</button>
+    </div>`
+      )
+      .join("") || `<p class="hint" style="margin:10px 0 0;">No sends scheduled.</p>`;
+  $$("[data-cancel-schedule]").forEach((b) =>
+    b.addEventListener("click", async () => {
+      await window.outreach.scheduleCancel(b.dataset.cancelSchedule);
+      renderScheduledList();
+    })
+  );
+}
+
+window.outreach.onScheduleFired((entry) => {
+  log(`\n🕒 Scheduled ${entry.type} fired at ${new Date().toLocaleTimeString()}.`);
+});
 
 // ---------- settings ----------
 const form = $("#settings-form");

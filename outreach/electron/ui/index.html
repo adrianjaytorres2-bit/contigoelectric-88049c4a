@@ -9,7 +9,8 @@
 <div id="app">
   <aside class="sidebar">
     <div class="brand">
-      <div class="brand-mark">AT</div>
+      <img class="brand-logo" src="logo.png" alt="AT Development Group"
+           onerror="this.outerHTML='&lt;div class=&quot;brand-mark&quot;&gt;AT&lt;/div&gt;'" />
       <div class="brand-text">
         <span class="brand-name">AT DEV GROUP</span>
         <span class="brand-sub">Outreach Studio</span>
@@ -420,6 +421,11 @@
       </div>
 
       <div class="guide-card">
+        <h2>Themes</h2>
+        <p><b>Settings → Appearance</b> has 17 color themes — from the classic <b>🌙 Midnight Amber</b> to <b>🔵 Steel Blue</b> (matches the AT DEV GROUP logo), plus fun ones like <b>🖥️ Matrix</b>, <b>🌆 Cyber Neon</b>, <b>📼 Vaporwave</b>, <b>🧛 Dracula</b>, and two light modes (<b>🌅 Daybreak</b>, <b>📜 Parchment</b>). The whole app recolors live as you browse the dropdown; your pick is saved when you hit Save settings and sticks between launches.</p>
+      </div>
+
+      <div class="guide-card">
         <h2>Checking for updates</h2>
         <p>The <b>🔄 Check for updates</b> button at the bottom of the sidebar checks for a newer version on demand — nothing runs in the background. It shows live status right there: checking, downloading with a percentage, "you're on the latest version," or an error if it can't reach the update feed. When a new version finishes downloading, an <b>⬇️ Update ready — restart</b> button appears; click it to install and relaunch. Updating only works in the installed app (the portable <b>.exe</b> you re-download by hand).</p>
       </div>
@@ -486,6 +492,32 @@
     <section id="view-settings" class="view">
       <header class="view-header"><h1>Settings</h1><p>Everything stays on this computer.</p></header>
       <form id="settings-form" class="settings">
+        <fieldset>
+          <legend>Appearance</legend>
+          <label>Theme
+            <select name="theme" id="theme-select">
+              <option value="midnight">🌙 Midnight Amber (default)</option>
+              <option value="steel">🔵 Steel Blue</option>
+              <option value="ocean">🌊 Deep Ocean</option>
+              <option value="emerald">🌲 Emerald Forest</option>
+              <option value="matrix">🖥️ Matrix</option>
+              <option value="cyber">🌆 Cyber Neon</option>
+              <option value="vaporwave">📼 Vaporwave</option>
+              <option value="dracula">🧛 Dracula</option>
+              <option value="grape">🍇 Grape Soda</option>
+              <option value="nord">❄️ Nord Frost</option>
+              <option value="rosegold">🌹 Rose Gold</option>
+              <option value="solarflare">☀️ Solar Flare</option>
+              <option value="bloodmoon">🩸 Blood Moon</option>
+              <option value="bumblebee">🐝 Bumblebee</option>
+              <option value="mono">⬜ Mono Noir</option>
+              <option value="daybreak">🌅 Daybreak (light)</option>
+              <option value="parchment">📜 Parchment (light)</option>
+            </select>
+          </label>
+          <p class="hint">💡 Pick a vibe — the whole app recolors instantly as you choose, and your pick is saved when you hit Save settings. “Midnight Amber” is the classic AT DEV GROUP look.</p>
+        </fieldset>
+
         <fieldset>
           <legend>Your identity</legend>
           <label>Your name <input name="senderName" placeholder="Adrian" /></label>

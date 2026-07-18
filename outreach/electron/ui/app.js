@@ -711,6 +711,15 @@ $("#update-banner").addEventListener("click", () => {
   window.outreach.restartToUpdate();
 });
 
+// ---------- theme ----------
+// "midnight" is the built-in :root default (no data-theme attribute).
+function applyTheme(theme) {
+  if (!theme || theme === "midnight") document.documentElement.removeAttribute("data-theme");
+  else document.documentElement.setAttribute("data-theme", theme);
+}
+// Live preview: recolor instantly as the user browses the dropdown.
+$("#theme-select").addEventListener("change", (e) => applyTheme(e.target.value));
+
 // ---------- settings ----------
 const form = $("#settings-form");
 
@@ -721,6 +730,7 @@ async function loadSettingsForm() {
     if (el.type === "checkbox") el.checked = !!s[el.name];
     else el.value = s[el.name];
   }
+  applyTheme(s.theme);
 }
 
 form.addEventListener("submit", async (e) => {

@@ -44,6 +44,7 @@ let win = null;
 // ---------- settings ----------
 
 const defaultSettings = {
+  theme: "midnight",
   senderName: "",
   senderBusiness: "AT DEV GROUP",
   senderPitch:

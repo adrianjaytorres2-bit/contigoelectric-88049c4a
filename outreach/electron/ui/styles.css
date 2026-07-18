@@ -67,6 +67,12 @@ nav { display: flex; flex-direction: column; gap: 4px; }
 .dot { width: 9px; height: 9px; border-radius: 50%; background: #3a4657; }
 .dot.on { background: var(--green); }
 .version { font-size: 11px; color: #56637a; }
+.update-status { font-size: 11px; color: var(--muted); line-height: 1.4; min-height: 0; }
+.update-status:empty { display: none; }
+.update-status.ok { color: var(--green); }
+.update-status.info { color: var(--accent-2); }
+.update-status.err { color: #f5736b; }
+.update-status.muted { color: #56637a; }
 
 /* ---------- content ---------- */
 .content { flex: 1; overflow-y: auto; padding: 30px 36px 48px; }

@@ -525,37 +525,62 @@ function createWindow() {
   win.loadFile(path.join(__dirname, "ui", "index.html"));
 }
 
-// ---------- auto-update ----------
-// Checks the GitHub Releases feed configured in package.json's build.publish.
-// Only runs for the installed (NSIS) build — the portable .exe doesn't
-// self-replace the same way, so it's skipped there (electron-builder sets
-// PORTABLE_EXECUTABLE_DIR when running as portable).
-function initAutoUpdate() {
-  if (!app.isPackaged || process.env.PORTABLE_EXECUTABLE_DIR) return;
-  try {
-    const { autoUpdater } = require("electron-updater");
-    autoUpdater.autoDownload = true;
-    autoUpdater.on("update-downloaded", () => {
-      if (win && !win.isDestroyed()) win.webContents.send("update:ready");
-    });
-    autoUpdater.on("error", (err) => {
-      if (win && !win.isDestroyed()) win.webContents.send("engine:log", `\n[auto-update] ${err.message}\n`);
-    });
-    autoUpdater.checkForUpdatesAndNotify();
-  } catch (err) {
-    // electron-updater not available (e.g. dev run without a build) — non-fatal.
-  }
+// ---------- updates ----------
+// Manual, user-driven: nothing checks in the background. The sidebar
+// "Check for updates" button calls update:check, and every stage of the
+// check reports back over the update:status channel so the button can show
+// live feedback (checking / up to date / downloading / ready / error).
+// Uses the GitHub Releases feed configured in package.json's build.publish.
+// Only works for the installed (NSIS) build — the portable .exe can't
+// self-replace (electron-builder sets PORTABLE_EXECUTABLE_DIR for it).
+let autoUpdaterRef = null;
+
+function sendUpdateStatus(state, extra = {}) {
+  if (win && !win.isDestroyed()) win.webContents.send("update:status", { state, ...extra });
 }
 
-ipcMain.handle("update:restart", () => {
+function getAutoUpdater() {
+  if (autoUpdaterRef) return autoUpdaterRef;
   const { autoUpdater } = require("electron-updater");
-  autoUpdater.quitAndInstall();
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.on("checking-for-update", () => sendUpdateStatus("checking"));
+  autoUpdater.on("update-available", (info) => sendUpdateStatus("available", { version: info && info.version }));
+  autoUpdater.on("update-not-available", () => sendUpdateStatus("not-available"));
+  autoUpdater.on("download-progress", (p) =>
+    sendUpdateStatus("downloading", { percent: Math.round((p && p.percent) || 0) })
+  );
+  autoUpdater.on("update-downloaded", (info) => sendUpdateStatus("ready", { version: info && info.version }));
+  autoUpdater.on("error", (err) => sendUpdateStatus("error", { message: (err && err.message) || String(err) }));
+  autoUpdaterRef = autoUpdater;
+  return autoUpdater;
+}
+
+ipcMain.handle("update:check", async () => {
+  if (!app.isPackaged) {
+    sendUpdateStatus("unsupported", { reason: "dev" });
+    return { ok: false, reason: "dev" };
+  }
+  if (process.env.PORTABLE_EXECUTABLE_DIR) {
+    sendUpdateStatus("unsupported", { reason: "portable" });
+    return { ok: false, reason: "portable" };
+  }
+  try {
+    await getAutoUpdater().checkForUpdates();
+    return { ok: true };
+  } catch (err) {
+    sendUpdateStatus("error", { message: err.message });
+    return { ok: false, reason: "error", message: err.message };
+  }
+});
+
+ipcMain.handle("update:restart", () => {
+  if (autoUpdaterRef) autoUpdaterRef.quitAndInstall();
 });
 
 app.whenReady().then(() => {
   createWindow();
   armAllSchedules();
-  initAutoUpdate();
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });

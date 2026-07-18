@@ -57,6 +57,8 @@
         <span id="dot-imap" class="dot" title="IMAP (replies)"></span>
       </div>
       <span class="version">v0.3 · local &amp; private</span>
+      <button id="btn-check-updates" class="btn tiny">🔄 Check for updates</button>
+      <span id="update-status" class="update-status"></span>
       <button id="update-banner" class="btn tiny primary hidden">⬇️ Update ready — restart</button>
     </div>
   </aside>
@@ -415,6 +417,11 @@
       <div class="guide-card">
         <h2>Scheduling a send</h2>
         <p>The <b>🕒 Schedule</b> button (Dashboard, step 4) queues your current drafted batch to send automatically at a chosen time, with three reasoned presets — or pick a custom time. <b>The app has to stay open</b> for the schedule to fire; it's not a background service. If you close the app before the scheduled time, the send is still queued and will run (or catch up) the next time you open the app.</p>
+      </div>
+
+      <div class="guide-card">
+        <h2>Checking for updates</h2>
+        <p>The <b>🔄 Check for updates</b> button at the bottom of the sidebar checks for a newer version on demand — nothing runs in the background. It shows live status right there: checking, downloading with a percentage, "you're on the latest version," or an error if it can't reach the update feed. When a new version finishes downloading, an <b>⬇️ Update ready — restart</b> button appears; click it to install and relaunch. Updating only works in the installed app (the portable <b>.exe</b> you re-download by hand).</p>
       </div>
 
       <div class="guide-card">

@@ -651,10 +651,61 @@ window.outreach.onScheduleFired((entry) => {
   log(`\n🕒 Scheduled ${entry.type} fired at ${new Date().toLocaleTimeString()}.`);
 });
 
-// ---------- auto-update ----------
-window.outreach.onUpdateReady(() => {
-  $("#update-banner").classList.remove("hidden");
+// ---------- updates (manual check) ----------
+const updateStatusEl = $("#update-status");
+const checkBtn = $("#btn-check-updates");
+
+function setUpdateStatus(text, cls = "") {
+  updateStatusEl.textContent = text || "";
+  updateStatusEl.className = "update-status" + (cls ? " " + cls : "");
+}
+
+$("#btn-check-updates").addEventListener("click", async () => {
+  checkBtn.disabled = true;
+  setUpdateStatus("Checking…");
+  const res = await window.outreach.checkForUpdates();
+  // For dev/portable the main process replies immediately via update:status;
+  // for a real check, the status events drive the rest and re-enable below.
+  if (res && res.ok === false && res.reason !== "error") checkBtn.disabled = false;
 });
+
+window.outreach.onUpdateStatus((s) => {
+  switch (s.state) {
+    case "checking":
+      checkBtn.disabled = true;
+      setUpdateStatus("Checking for updates…");
+      break;
+    case "available":
+      setUpdateStatus(`Update ${s.version ? "v" + s.version + " " : ""}found — downloading…`, "info");
+      break;
+    case "downloading":
+      setUpdateStatus(`Downloading… ${s.percent ?? 0}%`, "info");
+      break;
+    case "ready":
+      setUpdateStatus(`Update ${s.version ? "v" + s.version + " " : ""}ready.`, "ok");
+      checkBtn.disabled = false;
+      $("#update-banner").classList.remove("hidden");
+      break;
+    case "not-available":
+      setUpdateStatus("You're on the latest version. ✓", "ok");
+      checkBtn.disabled = false;
+      break;
+    case "unsupported":
+      setUpdateStatus(
+        s.reason === "portable"
+          ? "Portable build — download new versions manually."
+          : "Updates only work in the installed app.",
+        "muted"
+      );
+      checkBtn.disabled = false;
+      break;
+    case "error":
+      setUpdateStatus(`Check failed: ${s.message || "unknown error"}`, "err");
+      checkBtn.disabled = false;
+      break;
+  }
+});
+
 $("#update-banner").addEventListener("click", () => {
   if (!confirm("Restart now to install the update?")) return;
   window.outreach.restartToUpdate();

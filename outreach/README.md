@@ -19,7 +19,7 @@ First-time app setup: open **Settings**, fill in your name/pitch, Anthropic API 
 
 ### Auto-updates
 
-The **installed** (NSIS) version checks GitHub Releases for updates automatically and shows an "⬇️ Update ready — restart" button in the sidebar when one's downloaded. This only works for real **Releases**, not the plain test artifacts from every branch push.
+The **installed** (NSIS) version has a **🔄 Check for updates** button in the sidebar. Click it and it checks the GitHub Releases feed on demand (nothing polls in the background) — showing live status right there (checking → downloading → ready, or "you're on the latest version"). When a new version finishes downloading, an "⬇️ Update ready — restart" button appears; click it to install and relaunch. This only works for real **Releases**, not the plain test artifacts from every branch push, and not the portable `.exe` (which you re-download manually).
 
 **To cut a real release** (once you want the auto-updater to have something to find): bump the `version` in `outreach/package.json`, commit, then tag and push:
 

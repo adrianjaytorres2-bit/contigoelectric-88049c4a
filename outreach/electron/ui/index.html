@@ -252,6 +252,13 @@
         <h2>Overriding skipped leads</h2>
         <p>On the Dashboard, if any leads were skipped for scoring below your threshold, a <b>“Send to skipped anyway”</b> button appears under step 4. It re-queues those already-written emails so the next Send includes them. Leads skipped because their site was broken/parked have no email to send, so they stay skipped.</p>
       </div>
+
+      <div class="guide-card">
+        <h2>Email voice, length &amp; editing</h2>
+        <p><b>Settings → AI (email writing)</b> has 7 voice presets (Natural, Casual, Professional, Direct, Story-Driven, Witty, Consultative) and 3 length options. Every voice already avoids em dashes, AI clichés ("I hope this finds you well," "unlock," "seamless"), and the "not just X, it's Y" pattern that makes outreach read as machine-written — that's built in regardless of which style you pick.</p>
+        <p>Want full control over one specific email? Go to the <b>Emails</b> page — every drafted subject and body is editable right there. Change anything, hit <b>Save changes</b>, and it sends exactly as you wrote it. Already-sent emails are locked (nothing to edit, they're gone).</p>
+        <p class="note">💡 HTML formatting is optional and off by default. Plain text usually reads as more human and can deliver better for cold outreach — worth testing both.</p>
+      </div>
     </section>
 
     <!-- EMAILS -->
@@ -277,6 +284,31 @@
           <legend>AI (email writing)</legend>
           <label class="full">Anthropic API key <input name="anthropicApiKey" type="password" placeholder="sk-ant-..." /></label>
           <label>Min. quality score to email (0–100) <input name="minQualityScore" type="number" min="0" max="100" /></label>
+          <label class="full">Subject line style (optional — steers every generated subject)
+            <input name="subjectStyle" placeholder="e.g. Always include their business name. Keep under 7 words. No emojis." /></label>
+          <label>Email voice/style
+            <select name="emailStyle">
+              <option value="natural">Natural & Human (recommended)</option>
+              <option value="casual">Casual & Friendly</option>
+              <option value="professional">Professional & Polished</option>
+              <option value="direct">Direct & No-Fluff</option>
+              <option value="story">Story-Driven Opener</option>
+              <option value="witty">Witty & Light Humor</option>
+              <option value="consultative">Warm & Consultative</option>
+            </select>
+          </label>
+          <label>Email length
+            <select name="emailLength">
+              <option value="short">Short (~60–80 words)</option>
+              <option value="medium">Medium (~120–150 words)</option>
+              <option value="long">Longer (~180–220 words)</option>
+            </select>
+          </label>
+          <label class="check full">
+            <input name="htmlEmails" type="checkbox" />
+            Send nicely-formatted (HTML) emails instead of plain text
+          </label>
+          <p class="hint">💡 Every generated email already avoids em dashes, AI clichés, and the "not just X, it's Y" pattern — built in, no setting needed. Heads up on HTML: plain text often delivers better for cold outreach (it reads as a real person, not a mailer) — try both and see what performs.</p>
         </fieldset>
 
         <fieldset>

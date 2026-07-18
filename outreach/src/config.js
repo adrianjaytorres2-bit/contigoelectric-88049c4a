@@ -15,6 +15,17 @@ const DEFAULTS = {
   // Email generation
   language: "English",
   tone: "warm, human, direct — like a note from a real person, not a marketing blast",
+  // Optional extra instruction for how subject lines should be written, e.g.
+  // "Always include the business name" or "Keep under 6 words, no punctuation."
+  // Leave blank to let the model choose freely per lead.
+  subjectStyle: "",
+  // Voice preset (see EMAIL_STYLES in writer.js) and target length.
+  emailStyle: "natural",
+  emailLength: "medium",
+  // Send as lightly-styled HTML instead of plain text. Off by default —
+  // plain text generally reads as more human and often delivers better
+  // for cold outreach.
+  htmlEmails: false,
   // Only email sites whose audit score (how much the site needs work, 0-100)
   // is at or above this threshold.
   minQualityScore: 40,

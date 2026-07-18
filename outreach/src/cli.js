@@ -5,7 +5,7 @@ import * as store from "./store.js";
 import { csvToObjects } from "./csv.js";
 import { auditSites } from "./audit.js";
 import { draftEmail, draftFollowup, classifyReply } from "./writer.js";
-import { transport, sendEmail, sleep, sentToday } from "./sender.js";
+import { transport, sendEmail, sleep, sentToday, toHtmlEmail } from "./sender.js";
 import { fetchReplies } from "./inbox.js";
 import { findLeads } from "./leadgen.js";
 import { writeReport } from "./report.js";
@@ -79,6 +79,23 @@ async function main() {
       break;
     }
 
+    case "setdraft": {
+      // Manually override a lead's subject and/or body after drafting:
+      //   outreach setdraft someone@example.com --subject "New subject" --body "New body text"
+      const email = args[0];
+      const subject = flag(args, "--subject");
+      const body = flag(args, "--body");
+      const lead = Object.values(db.leads).find((l) => l.email === email);
+      if (!lead) die(`No lead found with email ${email}.`);
+      if (!lead.draft) die(`${email} has no draft yet — run \`draft\` first.`);
+      if (typeof subject === "string" && subject) lead.draft.subject = subject;
+      if (typeof body === "string" && body) lead.draft.body = body;
+      lead.edited = true;
+      store.save(db);
+      console.log(`Updated draft for ${email}.`);
+      break;
+    }
+
     case "draft": {
       const limit = Number(flag(args, "--limit") || Infinity);
       const audited = store.leadsByStatus(db, STATUS.AUDITED).slice(0, limit);
@@ -143,6 +160,7 @@ async function main() {
             to: lead.email,
             subject: lead.draft.subject,
             body: lead.draft.body,
+            ...(config.htmlEmails ? { html: toHtmlEmail(lead.draft.body, config.senderName) } : {}),
           });
           lead.status = STATUS.SENT;
           lead.sentAt = new Date().toISOString();
@@ -196,6 +214,7 @@ async function main() {
             subject: fu.subject,
             body: fu.body,
             inReplyTo: lead.messageId,
+            ...(config.htmlEmails ? { html: toHtmlEmail(fu.body, config.senderName) } : {}),
           });
           lead.followups.push({ ...fu, sentAt: new Date().toISOString(), messageId });
           store.save(db);
@@ -339,6 +358,8 @@ Usage:
                                    Generate leads from OpenStreetMap (free) — e.g. "plumber" "Tampa, FL"
   outreach audit [--limit N]       Audit websites of new leads in headless Chromium
   outreach draft [--limit N]       Write personalized emails with Claude for audited leads
+  outreach setdraft <email> [--subject "..."] [--body "..."]
+                                   Manually edit a lead's drafted subject/body
   outreach preview [email]         Show drafted emails before sending
   outreach override [email]        Re-queue skipped leads (that have a draft) so they send anyway
   outreach send [--dry-run]        Send drafted emails via SMTP (throttled, daily cap)

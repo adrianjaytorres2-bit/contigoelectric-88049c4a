@@ -196,17 +196,43 @@ async function refresh() {
   $("#emails-list").innerHTML =
     withDrafts
       .map(
-        (l) => `<div class="email-card">
+        (l) => `<div class="email-card" data-email="${esc(l.email)}">
       <div class="head">
         <span class="to">${esc(l.name)} <small>&lt;${esc(l.email)}&gt; · ${esc(l.company)}</small></span>
         <span class="badge ${esc(l.status)}">${esc(l.status)}</span>
       </div>
-      <div class="subject">Subject: ${esc(l.subject)}</div>
-      <pre>${esc(l.body)}</pre>
-      <div class="flaws">Score ${l.score ?? "—"} · Flaws: ${esc((l.flaws || []).join("; "))}</div>
+      <label class="field-label">Subject</label>
+      <input class="subject-input" value="${esc(l.subject)}" ${l.status === "sent" ? "disabled" : ""} />
+      <label class="field-label">Body</label>
+      <textarea class="body-input" rows="8" ${l.status === "sent" ? "disabled" : ""}>${esc(l.body)}</textarea>
+      <div class="email-card-footer">
+        <span class="flaws">Score ${l.score ?? "—"} · Flaws: ${esc((l.flaws || []).join("; "))}</span>
+        ${
+          l.status === "sent"
+            ? `<span class="hint" style="margin:0;">Already sent — locked</span>`
+            : `<button class="btn tiny save-draft">💾 Save changes</button><span class="save-ok"></span>`
+        }
+      </div>
     </div>`
       )
       .join("") || `<div class="empty">No drafts yet — run steps 1–3 on the Dashboard.</div>`;
+
+  $$("#emails-list .save-draft").forEach((btn) =>
+    btn.addEventListener("click", async () => {
+      const card = btn.closest(".email-card");
+      const email = card.dataset.email;
+      const subject = card.querySelector(".subject-input").value.trim();
+      const body = card.querySelector(".body-input").value.trim();
+      btn.disabled = true;
+      btn.textContent = "Saving…";
+      await window.outreach.setDraft({ email, subject, body });
+      btn.disabled = false;
+      btn.textContent = "💾 Save changes";
+      const ok = card.querySelector(".save-ok");
+      ok.textContent = "Saved ✓";
+      setTimeout(() => (ok.textContent = ""), 2000);
+    })
+  );
 }
 
 // ---------- settings ----------
@@ -215,14 +241,19 @@ const form = $("#settings-form");
 async function loadSettingsForm() {
   const s = await window.outreach.getSettings();
   for (const el of form.elements) {
-    if (el.name && s[el.name] !== undefined) el.value = s[el.name];
+    if (!el.name || s[el.name] === undefined) continue;
+    if (el.type === "checkbox") el.checked = !!s[el.name];
+    else el.value = s[el.name];
   }
 }
 
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
   const s = {};
-  for (const el of form.elements) if (el.name) s[el.name] = el.value;
+  for (const el of form.elements) {
+    if (!el.name) continue;
+    s[el.name] = el.type === "checkbox" ? el.checked : el.value;
+  }
   await window.outreach.saveSettings(s);
   $("#save-status").textContent = "Saved ✓";
   setTimeout(() => ($("#save-status").textContent = ""), 2500);

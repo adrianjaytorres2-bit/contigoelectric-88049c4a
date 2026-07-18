@@ -245,12 +245,21 @@ td a { color: var(--blue); text-decoration: none; }
 .email-card .head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; flex-wrap: wrap; gap: 6px; }
 .email-card .to { font-weight: 700; }
 .email-card .to small { color: var(--muted); font-weight: 400; }
-.email-card .subject { color: var(--accent-2); font-size: 14px; margin-bottom: 10px; }
-.email-card pre {
-  font-family: inherit; white-space: pre-wrap;
-  background: var(--panel-2); border-radius: 8px; padding: 14px; font-size: 14px; line-height: 1.6;
+.email-card .field-label { display: block; color: var(--muted); font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.5px; margin: 10px 0 5px; }
+.email-card .subject-input {
+  width: 100%; background: var(--panel-2); color: var(--accent-2);
+  border: 1px solid var(--border); border-radius: 8px; padding: 10px 13px; font-size: 14px; font-weight: 600;
 }
-.email-card .flaws { color: var(--muted); font-size: 12.5px; margin-top: 10px; }
+.email-card .body-input {
+  width: 100%; background: var(--panel-2); color: var(--text);
+  border: 1px solid var(--border); border-radius: 8px; padding: 14px; font-size: 14px; line-height: 1.6;
+  font-family: inherit; resize: vertical;
+}
+.email-card .subject-input:focus, .email-card .body-input:focus { outline: none; border-color: var(--accent); }
+.email-card .subject-input:disabled, .email-card .body-input:disabled { opacity: 0.6; cursor: not-allowed; }
+.email-card-footer { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+.email-card .flaws { color: var(--muted); font-size: 12.5px; flex: 1; }
+.save-ok { color: var(--green); font-size: 12.5px; font-weight: 600; }
 .empty { color: var(--muted); padding: 40px 0; text-align: center; }
 
 /* settings */
@@ -263,12 +272,14 @@ td a { color: var(--blue); text-decoration: none; }
 .settings legend { padding: 0 8px; font-weight: 700; font-size: 14px; color: var(--accent-2); }
 .settings label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--muted); }
 .settings label.full { grid-column: 1 / -1; }
-.settings input, .settings textarea {
+.settings label.check { flex-direction: row; align-items: center; gap: 9px; color: var(--text); font-size: 14px; }
+.settings label.check input[type="checkbox"] { width: 17px; height: 17px; accent-color: var(--accent); flex-shrink: 0; }
+.settings input, .settings textarea, .settings select {
   background: #0e131b; color: var(--text);
   border: 1px solid var(--border); border-radius: 7px;
   padding: 9px 11px; font-size: 14px; font-family: inherit;
 }
-.settings input:focus, .settings textarea:focus { outline: none; border-color: var(--accent); }
+.settings input:focus, .settings textarea:focus, .settings select:focus { outline: none; border-color: var(--accent); }
 .settings .hint { grid-column: 1 / -1; color: var(--muted); font-size: 13px; }
 .save-row { display: flex; align-items: center; gap: 16px; }
 #save-status { color: var(--green); font-size: 14px; }

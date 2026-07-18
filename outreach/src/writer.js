@@ -30,19 +30,83 @@ function client() {
   return new Anthropic();
 }
 
+// 7 tone presets. Each is a short, concrete instruction — not just a mood word —
+// so the model actually writes differently rather than reusing one voice.
+export const EMAIL_STYLES = {
+  natural: {
+    label: "Natural & Human (recommended)",
+    instruction:
+      "Write like a real person dashing off a genuine note between calls — plainspoken, a little imperfect, not polished marketing copy.",
+  },
+  casual: {
+    label: "Casual & Friendly",
+    instruction:
+      "Write casually, like texting a friendly acquaintance — relaxed, first-name energy, contractions everywhere, maybe one light aside.",
+  },
+  professional: {
+    label: "Professional & Polished",
+    instruction:
+      "Write in a professional but still warm register — respectful, clean, business-appropriate, the way a competent consultant emails a prospect.",
+  },
+  direct: {
+    label: "Direct & No-Fluff",
+    instruction:
+      "Be blunt and efficient. Skip pleasantries and scene-setting — open on the observation, make the point, ask the question. Shorter sentences.",
+  },
+  story: {
+    label: "Story-Driven Opener",
+    instruction:
+      "Open with a brief, concrete observation or mini-scene (what you saw when you pulled up their site) before pivoting to the point — like an anecdote, not a pitch.",
+  },
+  witty: {
+    label: "Witty & Light Humor",
+    instruction:
+      "Allow one genuinely light, dry, or self-aware touch of humor — never a pun, never at the prospect's expense, and never forced. If nothing funny fits naturally, skip it rather than force it.",
+  },
+  consultative: {
+    label: "Warm & Consultative",
+    instruction:
+      "Write like a trusted advisor who wants them to succeed regardless of whether they hire you — empathetic, focused on their outcome, low-pressure.",
+  },
+};
+
+export const EMAIL_LENGTHS = {
+  short: { label: "Short (~60–80 words)", target: "60-80 words. One flaw, one sentence of value, one CTA. No wasted words." },
+  medium: { label: "Medium (~120–150 words)", target: "120-150 words — enough room for one specific flaw and a touch of context." },
+  long: { label: "Longer (~180–220 words)", target: "180-220 words — room for 2 flaws and a bit more of a case, but still tight, no padding." },
+};
+
+// Baked in regardless of style: the specific tells that make outreach emails
+// read as AI-written, which readers now recognize and instinctively distrust.
+const ANTI_AI_TELLS = `Avoid the writing patterns that make emails read as AI-generated:
+- No em dashes (—). Use a period, comma, or parentheses instead.
+- No "it's not just X, it's Y" or other rule-of-three contrast constructions.
+- No stock AI openers/fillers: "I hope this finds you well", "I wanted to reach out", "In today's digital age", "I noticed that", "I came across", used as a generic opener.
+- No corporate buzzwords: "game-changer", "unlock", "seamless", "elevate", "leverage", "dive in", "circle back".
+- Vary sentence length naturally — don't make every sentence the same tidy medium length. Contractions are good.
+- No perfectly symmetrical three-item lists.`;
+
 function systemPrompt(config) {
+  const style = EMAIL_STYLES[config.emailStyle] || EMAIL_STYLES.natural;
+  const length = EMAIL_LENGTHS[config.emailLength] || EMAIL_LENGTHS.medium;
   return `You are writing cold outreach emails on behalf of ${config.senderName} of ${config.senderBusiness}.
 Their pitch: ${config.senderPitch}
 
 You are given a real audit of a prospect's website: hard facts extracted from the page plus a screenshot. Critique the site like an experienced web designer would, then write ONE personalized email.
 
+Voice: ${style.instruction}
+Language: ${config.language}.
+Length: ${length.target}
+
 Rules for the email:
-- Write in ${config.language}. Tone: ${config.tone}.
 - Reference 1-2 SPECIFIC flaws you actually observed (from the facts/screenshot). Never invent flaws.
 - Mention the prospect's name and company naturally.
-- Keep it under 130 words. One clear, low-pressure call to action (a quick reply or a 10-minute call).
-- No bullet lists, no "I hope this finds you well", no hard sell, no attachments mentioned.
+- One clear, low-pressure call to action (a quick reply or a short call).
+- No bullet lists, no hard sell, no attachments mentioned.
 - Sign off as ${config.senderName}, ${config.senderBusiness}.
+${config.subjectStyle ? `- Subject line requirement: ${config.subjectStyle}` : ""}
+
+${ANTI_AI_TELLS}
 
 Also score how much the site needs work (quality_score) so low-value prospects can be filtered out.`;
 }

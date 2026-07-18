@@ -19,12 +19,39 @@ export function transport() {
   };
 }
 
-export async function sendEmail(t, { to, subject, body, inReplyTo }) {
+// Wraps plain-text body into clean, minimal HTML — proper paragraph spacing
+// and a lightly styled sign-off, not a "designed" template. Cold email
+// deliverability is generally better with plain text (it reads as a real
+// person, not a mailer), so this is opt-in, not the default.
+export function toHtmlEmail(body, senderName) {
+  const esc = (s) =>
+    String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const paragraphs = body
+    .split(/\n\s*\n/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+  const nameEsc = senderName ? esc(senderName) : "";
+  const html = paragraphs
+    .map((p, i) => {
+      // Bold the final sign-off paragraph if it starts with the sender's name.
+      if (nameEsc && i === paragraphs.length - 1 && p.startsWith(senderName)) {
+        return `<p style="margin:0 0 4px;font-weight:600;">${esc(p).replace(/\n/g, "<br>")}</p>`;
+      }
+      return `<p style="margin:0 0 14px;">${esc(p).replace(/\n/g, "<br>")}</p>`;
+    })
+    .join("\n");
+  return `<div style="font-family:Georgia,'Segoe UI',Arial,sans-serif;font-size:15px;line-height:1.6;color:#1a1a1a;max-width:560px;">
+${html}
+</div>`;
+}
+
+export async function sendEmail(t, { to, subject, body, inReplyTo, html }) {
   const info = await t.mailer.sendMail({
     from: t.from,
     to,
     subject,
     text: body,
+    ...(html ? { html } : {}),
     ...(inReplyTo ? { inReplyTo, references: inReplyTo } : {}),
   });
   return info.messageId;

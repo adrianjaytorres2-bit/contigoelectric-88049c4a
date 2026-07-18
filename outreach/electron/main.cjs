@@ -14,8 +14,12 @@ const defaultSettings = {
   senderName: "",
   senderBusiness: "AT DEV GROUP",
   senderPitch:
-    "We build and redesign websites for small businesses — fast, mobile-friendly, and built to convert visitors into customers.",
+    "We build and redesign websites for small businesses. Fast, mobile-friendly, and built to convert visitors into customers.",
   language: "English",
+  subjectStyle: "",
+  emailStyle: "natural",
+  emailLength: "medium",
+  htmlEmails: false,
   minQualityScore: 40,
   dailySendCap: 50,
   secondsBetweenSends: 45,
@@ -64,6 +68,10 @@ function engineConfig(s) {
     senderBusiness: s.senderBusiness || "AT DEV GROUP",
     senderPitch: s.senderPitch,
     language: s.language,
+    subjectStyle: s.subjectStyle || "",
+    emailStyle: s.emailStyle || "natural",
+    emailLength: s.emailLength || "medium",
+    htmlEmails: !!s.htmlEmails,
     minQualityScore: Number(s.minQualityScore) || 40,
     dailySendCap: Number(s.dailySendCap) || 50,
     secondsBetweenSends: Number(s.secondsBetweenSends) || 45,
@@ -198,6 +206,12 @@ ipcMain.handle("leads:importDialog", async () => {
 ipcMain.handle("run:audit", () => runEngine(["audit"]));
 ipcMain.handle("run:draft", () => runEngine(["draft"]));
 ipcMain.handle("run:override", (_e, email) => runEngine(email ? ["override", email] : ["override"]));
+ipcMain.handle("lead:setDraft", (_e, { email, subject, body }) => {
+  const args = ["setdraft", email];
+  if (subject) args.push("--subject", subject);
+  if (body) args.push("--body", body);
+  return runEngine(args);
+});
 ipcMain.handle("leadgen:search", (_e, { query, location, limit, scrape }) => {
   const args = ["findleads", query, location, "--limit", String(limit || 50)];
   if (!scrape) args.push("--no-scrape");

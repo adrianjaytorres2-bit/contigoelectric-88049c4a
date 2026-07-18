@@ -44,7 +44,8 @@
       {
         "provider": "github",
         "owner": "adrianjaytorres2-bit",
-        "repo": "contigoelectric-88049c4a"
+        "repo": "contigoelectric-88049c4a",
+        "releaseType": "release"
       }
     ],
     "win": {

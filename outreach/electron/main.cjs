@@ -491,9 +491,37 @@ function createWindow() {
   win.loadFile(path.join(__dirname, "ui", "index.html"));
 }
 
+// ---------- auto-update ----------
+// Checks the GitHub Releases feed configured in package.json's build.publish.
+// Only runs for the installed (NSIS) build — the portable .exe doesn't
+// self-replace the same way, so it's skipped there (electron-builder sets
+// PORTABLE_EXECUTABLE_DIR when running as portable).
+function initAutoUpdate() {
+  if (!app.isPackaged || process.env.PORTABLE_EXECUTABLE_DIR) return;
+  try {
+    const { autoUpdater } = require("electron-updater");
+    autoUpdater.autoDownload = true;
+    autoUpdater.on("update-downloaded", () => {
+      if (win && !win.isDestroyed()) win.webContents.send("update:ready");
+    });
+    autoUpdater.on("error", (err) => {
+      if (win && !win.isDestroyed()) win.webContents.send("engine:log", `\n[auto-update] ${err.message}\n`);
+    });
+    autoUpdater.checkForUpdatesAndNotify();
+  } catch (err) {
+    // electron-updater not available (e.g. dev run without a build) — non-fatal.
+  }
+}
+
+ipcMain.handle("update:restart", () => {
+  const { autoUpdater } = require("electron-updater");
+  autoUpdater.quitAndInstall();
+});
+
 app.whenReady().then(() => {
   createWindow();
   armAllSchedules();
+  initAutoUpdate();
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });

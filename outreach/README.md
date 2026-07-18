@@ -17,6 +17,19 @@ npm run dist:win   # build installer + portable .exe into outreach/release/
 
 First-time app setup: open **Settings**, fill in your name/pitch, Anthropic API key, and SMTP details, click **Install audit browser** once, then **Save**. The status dots in the sidebar turn green as each piece is configured.
 
+### Auto-updates
+
+The **installed** (NSIS) version checks GitHub Releases for updates automatically and shows an "⬇️ Update ready — restart" button in the sidebar when one's downloaded. This only works for real **Releases**, not the plain test artifacts from every branch push.
+
+**To cut a real release** (once you want the auto-updater to have something to find): bump the `version` in `outreach/package.json`, commit, then tag and push:
+
+```sh
+git tag v0.2.0
+git push origin v0.2.0
+```
+
+That triggers `release-outreach.yml`, which builds and publishes a GitHub Release with the installer, portable exe, and the `latest.yml` metadata electron-updater reads. The portable `.exe` does not self-update (only the installed version does) — re-download it manually for updates.
+
 ## Find Leads (free lead generation)
 
 The **Find Leads** page generates a lead list from **OpenStreetMap** — no API key, no credits. Enter a business type (e.g. `plumber`) and a location (e.g. `Tampa, FL`), and it pulls matching businesses (name, website, phone, and any listed email) via Nominatim + Overpass, optionally scanning each site's contact page for an email. Results drop straight into your Leads list, ready to audit.

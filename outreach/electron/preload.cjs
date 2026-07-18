@@ -22,6 +22,8 @@ contextBridge.exposeInMainWorld("outreach", {
   scheduleList: () => ipcRenderer.invoke("schedule:list"),
   scheduleCancel: (id) => ipcRenderer.invoke("schedule:cancel", id),
   onScheduleFired: (cb) => ipcRenderer.on("schedule:fired", (_e, entry) => cb(entry)),
+  onUpdateReady: (cb) => ipcRenderer.on("update:ready", () => cb()),
+  restartToUpdate: () => ipcRenderer.invoke("update:restart"),
   runSend: (dryRun) => ipcRenderer.invoke("run:send", { dryRun }),
   runFollowup: (dryRun) => ipcRenderer.invoke("run:followup", { dryRun }),
   runInbox: () => ipcRenderer.invoke("run:inbox"),

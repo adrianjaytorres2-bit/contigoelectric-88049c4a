@@ -1,6 +1,6 @@
 {
   "name": "outreach",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "AT DEV GROUP Outreach Studio — website-audit cold outreach, self-hosted",
   "type": "module",
   "private": true,
@@ -12,10 +12,12 @@
     "start": "node src/cli.js",
     "app": "electron .",
     "dist:win": "electron-builder --win",
-    "dist:linux": "electron-builder --linux"
+    "dist:linux": "electron-builder --linux",
+    "release:win": "electron-builder --win --publish always"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.110.0",
+    "electron-updater": "^6.8.9",
     "imapflow": "^1.0.164",
     "mailparser": "^3.7.1",
     "nodemailer": "^6.9.16",
@@ -38,10 +40,27 @@
     "directories": {
       "output": "release"
     },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "adrianjaytorres2-bit",
+        "repo": "contigoelectric-88049c4a"
+      }
+    ],
     "win": {
       "target": [
-        { "target": "nsis", "arch": ["x64"] },
-        { "target": "portable", "arch": ["x64"] }
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
       ]
     },
     "nsis": {
@@ -49,7 +68,9 @@
       "shortcutName": "AT DEV GROUP Outreach"
     },
     "linux": {
-      "target": ["AppImage"]
+      "target": [
+        "AppImage"
+      ]
     }
   },
   "engines": {

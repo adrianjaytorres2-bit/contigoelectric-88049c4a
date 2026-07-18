@@ -535,6 +535,15 @@ window.outreach.onScheduleFired((entry) => {
   log(`\n🕒 Scheduled ${entry.type} fired at ${new Date().toLocaleTimeString()}.`);
 });
 
+// ---------- auto-update ----------
+window.outreach.onUpdateReady(() => {
+  $("#update-banner").classList.remove("hidden");
+});
+$("#update-banner").addEventListener("click", () => {
+  if (!confirm("Restart now to install the update?")) return;
+  window.outreach.restartToUpdate();
+});
+
 // ---------- settings ----------
 const form = $("#settings-form");
 

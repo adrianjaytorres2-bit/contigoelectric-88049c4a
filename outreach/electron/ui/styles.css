@@ -280,6 +280,27 @@ td a { color: var(--blue); text-decoration: none; }
 .fb-section-title { color: var(--muted); font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.5px; margin: 18px 0 8px; }
 .fb-section-title:first-child { margin-top: 0; }
 
+/* lead detail info + draft preview */
+.ld-info {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 6px 18px;
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px;
+  padding: 12px 14px; margin-bottom: 14px;
+}
+.ld-row { display: flex; flex-direction: column; gap: 1px; font-size: 13px; overflow: hidden; }
+.ld-row span { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; }
+.ld-row b { color: var(--text); font-weight: 600; word-break: break-word; }
+.ld-draft {
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px;
+  padding: 12px 14px; margin-bottom: 14px;
+}
+.ld-draft.hidden { display: none; }
+.ld-draft-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 10px; }
+.ld-subject { font-weight: 700; color: var(--accent-2); margin-bottom: 8px; }
+.ld-body {
+  white-space: pre-wrap; word-break: break-word; font-family: inherit; font-size: 13.5px;
+  line-height: 1.6; color: var(--text); margin: 0; max-height: 260px; overflow-y: auto;
+}
+
 /* settings */
 .settings fieldset {
   border: 1px solid var(--border); border-radius: var(--radius);

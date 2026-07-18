@@ -29,6 +29,7 @@ contextBridge.exposeInMainWorld("outreach", {
   onUpdateReady: (cb) => ipcRenderer.on("update:ready", () => cb()),
   restartToUpdate: () => ipcRenderer.invoke("update:restart"),
   runSend: (dryRun) => ipcRenderer.invoke("run:send", { dryRun }),
+  sendOne: (key) => ipcRenderer.invoke("lead:sendOne", key),
   runFollowup: (dryRun) => ipcRenderer.invoke("run:followup", { dryRun }),
   runInbox: () => ipcRenderer.invoke("run:inbox"),
   openReport: () => ipcRenderer.invoke("report:open"),

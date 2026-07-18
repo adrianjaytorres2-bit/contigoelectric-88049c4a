@@ -343,6 +343,8 @@ function readState() {
       tags: l.tags || [],
       variant: l.draft?.variant || null,
       facebookUrl: l.facebookUrl || null,
+      phone: l.phone || null,
+      industry: l.industry || null,
     })),
     counts,
     sentToday,
@@ -417,6 +419,7 @@ ipcMain.handle("leadgen:search", (_e, { query, location, limit, scrape }) => {
   return runEngine(args);
 });
 ipcMain.handle("run:send", (_e, { dryRun }) => runEngine(dryRun ? ["send", "--dry-run"] : ["send"]));
+ipcMain.handle("lead:sendOne", (_e, key) => runEngine(["sendone", key]));
 ipcMain.handle("run:followup", (_e, { dryRun }) =>
   runEngine(dryRun ? ["followup", "--dry-run"] : ["followup"])
 );

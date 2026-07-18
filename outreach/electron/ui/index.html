@@ -255,6 +255,15 @@
       <div class="modal">
         <div class="modal-head"><h2 id="ld-title">Lead</h2><button class="modal-close" data-close-modal>✕</button></div>
         <p class="hint" id="ld-meta"></p>
+        <div id="ld-info" class="ld-info"></div>
+        <div id="ld-draft" class="ld-draft hidden">
+          <div class="ld-draft-head">
+            <span class="field-label" style="margin:0;">Drafted email</span>
+            <button type="button" class="btn primary tiny" id="btn-send-one">🚀 Send this one now</button>
+          </div>
+          <div id="ld-subject" class="ld-subject"></div>
+          <pre id="ld-body" class="ld-body"></pre>
+        </div>
         <form id="form-lead-detail" class="modal-form">
           <input type="hidden" name="email" />
           <label class="full">Notes<textarea name="notes" rows="4" placeholder="Called, left voicemail. Try again Thursday…"></textarea></label>

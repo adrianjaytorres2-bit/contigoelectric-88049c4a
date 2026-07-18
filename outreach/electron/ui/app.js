@@ -206,10 +206,12 @@ function renderLeads() {
       <td>
         ${(l.tags || []).map((t) => `<span class="tag-pill">${esc(t)}</span>`).join("")}
         ${l.notes ? `<div class="notes-preview">${esc(l.notes.slice(0, 60))}${l.notes.length > 60 ? "…" : ""}</div>` : ""}
-        <button class="btn tiny" data-detail="${esc(l.email)}">✏️ Notes/tags</button>
+        <button class="btn tiny" data-detail="${esc(l.email)}">🔍 Details</button>
       </td>
       <td>${
-        l.status === "skipped" && l.subject
+        l.status === "drafted" && l.email
+          ? `<button class="btn tiny primary" data-sendone="${esc(l.email)}">🚀 Send</button>`
+          : l.status === "skipped" && l.subject
           ? `<button class="btn tiny override" data-override="${esc(l.email)}">Send anyway</button>`
           : ""
       }</td>
@@ -224,6 +226,13 @@ function renderLeads() {
   );
   $$("#leads-table [data-detail]").forEach((b) =>
     b.addEventListener("click", () => openLeadDetail(b.dataset.detail))
+  );
+  $$("#leads-table [data-sendone]").forEach((b) =>
+    b.addEventListener("click", () => {
+      const email = b.dataset.sendone;
+      if (!confirm(`Send the drafted email to ${email} now? It goes out from your real mailbox immediately.`)) return;
+      runAction(`Sending to ${email}…`, () => window.outreach.sendOne(email));
+    })
   );
   $$("#leads-table .row-check").forEach((cb) =>
     cb.addEventListener("change", () => {
@@ -278,8 +287,46 @@ function openLeadDetail(email) {
   form.tags.value = (lead.tags || []).join(", ");
   $("#ld-title").textContent = lead.name || email;
   $("#ld-meta").textContent = `${lead.company || ""} · ${email}`;
+
+  // full info block
+  const rows = [
+    ["Email", lead.email || "—"],
+    ["Company", lead.company || "—"],
+    ["Website", lead.website || "—"],
+    lead.phone ? ["Phone", lead.phone] : null,
+    lead.industry ? ["Type", lead.industry] : null,
+    ["Status", lead.status],
+    ["Quality score", lead.score ?? "—"],
+    lead.facebookUrl ? ["Facebook", lead.facebookUrl] : null,
+    lead.sentAt ? ["Sent", new Date(lead.sentAt).toLocaleString()] : null,
+    lead.followupCount ? ["Follow-ups sent", lead.followupCount] : null,
+    lead.reply ? ["Reply", `${lead.reply.intent} — ${lead.reply.summary || ""}`] : null,
+  ].filter(Boolean);
+  $("#ld-info").innerHTML = rows
+    .map(([k, v]) => `<div class="ld-row"><span>${esc(k)}</span><b>${esc(String(v))}</b></div>`)
+    .join("");
+
+  // draft preview + one-off send
+  const hasDraft = !!lead.subject;
+  $("#ld-draft").classList.toggle("hidden", !hasDraft);
+  if (hasDraft) {
+    $("#ld-subject").textContent = lead.subject;
+    $("#ld-body").textContent = lead.body || "";
+    const canSend = lead.status !== "sent" && !!lead.email;
+    const btn = $("#btn-send-one");
+    btn.classList.toggle("hidden", !canSend);
+    btn.dataset.email = email;
+  }
   openModal("modal-lead-detail");
 }
+
+$("#btn-send-one").addEventListener("click", async () => {
+  const email = $("#btn-send-one").dataset.email;
+  if (!email) return;
+  if (!confirm(`Send this email to ${email} now? It goes out from your real mailbox immediately.`)) return;
+  $("#modal-lead-detail").classList.add("hidden");
+  await runAction(`Sending to ${email}…`, () => window.outreach.sendOne(email));
+});
 
 $("#form-lead-detail").addEventListener("submit", async (e) => {
   e.preventDefault();

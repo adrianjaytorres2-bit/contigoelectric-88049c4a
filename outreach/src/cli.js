@@ -298,6 +298,40 @@ async function main() {
       break;
     }
 
+    case "sendone": {
+      // Send a single specific lead's drafted email right now, on demand —
+      // regardless of the batch daily cap (it's a deliberate one-off). Still
+      // respects suppression and won't re-send an already-sent lead.
+      const key = args[0];
+      if (!key) die("usage: outreach sendone <email or leadId>");
+      const lead = db.leads[key] || Object.values(db.leads).find((l) => l.email && l.email === key);
+      if (!lead) die(`No lead found: ${key}`);
+      if (!lead.email) die("This lead has no email address to send to. Add one first.");
+      if (!lead.draft || !lead.draft.body) die(`${lead.email} has no drafted email yet. Run \`draft\` first.`);
+      if (store.isSuppressed(db, lead.email)) die(`${lead.email} is unsubscribed — refusing to send.`);
+      if (lead.status === STATUS.SENT) die(`${lead.email} was already sent (${lead.sentAt}).`);
+      const finalBody = appendUnsubscribeFooter(lead.draft.body, config);
+      const t = transport();
+      try {
+        const messageId = await sendEmail(t, {
+          to: lead.email,
+          subject: lead.draft.subject,
+          body: finalBody,
+          ...(config.htmlEmails ? { html: toHtmlEmail(finalBody, config.senderName) } : {}),
+        });
+        lead.status = STATUS.SENT;
+        lead.sentAt = new Date().toISOString();
+        lead.messageId = messageId;
+        lead.overridden = true; // sent individually, outside the normal batch
+        store.save(db);
+        console.log(`✓ sent to ${lead.email}`);
+      } catch (err) {
+        console.log(`✗ ${lead.email}: ${err.message}`);
+        process.exit(1);
+      }
+      break;
+    }
+
     case "followup": {
       const dryRun = args.includes("--dry-run");
       const now = Date.now();
@@ -666,6 +700,7 @@ Usage:
   outreach preview [email]         Show drafted emails before sending
   outreach override [email]        Re-queue skipped leads (that have a draft) so they send anyway
   outreach send [--dry-run]        Send drafted emails via SMTP (throttled, daily cap)
+  outreach sendone <email|leadId>  Send one specific lead's drafted email immediately (ignores daily cap)
   outreach followup [--dry-run]    Send due follow-ups to non-repliers
   outreach inbox                   Pull replies via IMAP and classify intent
   outreach reply <email> --text "" Record + classify a reply manually

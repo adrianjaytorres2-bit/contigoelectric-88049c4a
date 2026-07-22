@@ -51,6 +51,12 @@ const DEFAULTS = {
   warmupTargetCap: 50,
   warmupStepAmount: 5,
   warmupStepDays: 3,
+  // Email verification — free syntax/MX/disposable-domain checks run
+  // automatically before drafting to catch the addresses most likely to
+  // bounce, before any AI cost is spent on them. An optional paid API key
+  // (EMAIL_VERIFY_API_KEY env var, like GOOGLE_API_KEY) adds a real
+  // mailbox-existence check on top.
+  emailVerifyEnabled: true,
   // A/B testing — alternates two email-voice styles across a drafting batch
   // (stable per lead, so re-drafting the same lead keeps its variant) so
   // reply rates can be compared in Analytics.

@@ -57,7 +57,7 @@
         <span id="dot-smtp" class="dot" title="SMTP (sending)"></span>
         <span id="dot-imap" class="dot" title="IMAP (replies)"></span>
       </div>
-      <span class="version">v3.2.103 · local &amp; private</span>
+      <span class="version">v3.2.104 · local &amp; private</span>
       <button id="btn-check-updates" class="btn tiny">🔄 Check for updates</button>
       <span id="update-status" class="update-status"></span>
       <button id="update-banner" class="btn tiny primary hidden">⬇️ Update ready — restart</button>
@@ -225,6 +225,7 @@
       </div>
       <div class="leads-footer-actions">
         <button class="btn tiny" id="btn-export-all">📤 Export all leads to CSV</button>
+        <button class="btn tiny" id="btn-verify-leads">✅ Check emails for bounce risk</button>
       </div>
     </section>
 
@@ -434,6 +435,12 @@
       </div>
 
       <div class="guide-card">
+        <h2>Email verification (reducing bounces)</h2>
+        <p>Every email is checked automatically right before drafting (free — syntax, whether the domain even has a mail server, and known throwaway/disposable domains). Addresses that fail are marked <span class="badge skipped">skipped</span> with the reason and never get a draft written, so no AI cost is wasted on an address that was always going to bounce. Role addresses like info@/contact@/sales@ are <b>not</b> filtered — those are normal, actively-read small-business inboxes, exactly what Find Leads is supposed to find.</p>
+        <p>Add a deep-verification API key in <b>Settings → Email verification</b> to also check whether the actual mailbox exists — catches the case free checks can't (a real domain with a dead inbox). On the <b>Leads</b> page, <b>✅ Check emails for bounce risk</b> re-checks every address in your list at once, useful before a big send or for leads imported before this feature existed. A <span class="badge sent">✓ verified</span> / <span class="badge maybe_later">⚠ risky</span> / <span class="badge skipped">⚠ bounce risk</span> badge shows next to each lead's status.</p>
+      </div>
+
+      <div class="guide-card">
         <h2>Preferring small/independent businesses</h2>
         <p>The <b>Find Leads</b> page has a <b>"Prefer small/independent businesses"</b> checkbox that filters out chains and franchises using three signals: OpenStreetMap's franchise/brand tags, businesses appearing at more than one location in the same search (a strong chain signal even without any tags), and an AI check of each remaining business name for recognizable national/regional chains. Nothing is hardcoded — the AI check works for any business type or brand, the same way business-type search already generalizes. Add a <b>max review count</b> (Google Places searches only) to also skip anything with a big review count, another common chain signal.</p>
       </div>
@@ -625,6 +632,17 @@
           <p class="hint">Every email you send already includes a reply-to-unsubscribe line automatically — anyone who replies "unsubscribe" is permanently removed and never emailed by this tool again. Commercial email law (e.g. CAN-SPAM) also expects a real postal address in the footer.</p>
           <label class="full">Physical business address (optional, included in every email footer)
             <input name="physicalAddress" placeholder="123 Main St, Ocala, FL 34470" /></label>
+        </fieldset>
+
+        <fieldset>
+          <legend>Email verification (reduce bounces)</legend>
+          <label class="check full">
+            <input name="emailVerifyEnabled" type="checkbox" checked />
+            Check every email address before drafting (syntax, mail-server, disposable-domain checks — free, automatic)
+          </label>
+          <label class="full">Deep verification API key (optional — catches dead mailboxes the free checks can't)
+            <input name="emailVerifyApiKey" type="password" placeholder="AbstractAPI email validation key (optional)" /></label>
+          <p class="hint">💡 The free checks catch typos, dead/parked domains, throwaway inboxes, and no-reply addresses — the most common causes of bounces from scraped contact-page emails. Adding an API key (from AbstractAPI's email validation service, or a compatible provider) also checks whether the actual mailbox exists, catching the cases free checks can't. Leads that fail are skipped before any AI cost is spent — see the <b>Leads</b> page to re-check existing addresses.</p>
         </fieldset>
 
         <fieldset>

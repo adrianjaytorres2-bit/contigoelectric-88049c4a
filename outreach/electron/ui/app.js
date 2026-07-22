@@ -40,7 +40,7 @@ const actionButtons = [
   "#btn-send", "#btn-send-dry", "#btn-followup", "#btn-inbox", "#btn-report",
   "#btn-install-browser", "#btn-override", "#btn-findleads",
   "#btn-add-lead", "#btn-quick-send", "#btn-bulk-export", "#btn-bulk-delete",
-  "#btn-export-all", "#btn-fb-generate",
+  "#btn-export-all", "#btn-fb-generate", "#btn-verify-leads",
 ];
 function setBusy(busy) {
   actionButtons.forEach((sel) => { const b = $(sel); if (b) b.disabled = busy; });
@@ -206,7 +206,15 @@ function renderLeads() {
       <td><a href="${esc(l.website)}" target="_blank">${esc(l.website.replace(/^https?:\/\//, ""))}</a></td>
       <td><span class="badge ${esc(l.status)}">${esc(l.status)}</span>${
           l.reply ? `<br><span class="badge ${esc(l.reply.intent)}">${esc(l.reply.intent)}</span>` : ""
-        }${l.variant ? `<br><span class="badge">variant ${esc(l.variant)}</span>` : ""}</td>
+        }${l.variant ? `<br><span class="badge">variant ${esc(l.variant)}</span>` : ""}${
+          l.emailVerified?.status === "invalid"
+            ? `<br><span class="badge skipped" title="${esc(l.emailVerified.reason || "")}">⚠ bounce risk</span>`
+            : l.emailVerified?.status === "risky"
+            ? `<br><span class="badge maybe_later" title="${esc(l.emailVerified.reason || "")}">⚠ risky</span>`
+            : l.emailVerified?.status === "valid"
+            ? `<br><span class="badge sent" title="${esc(l.emailVerified.reason || "")}">✓ verified</span>`
+            : ""
+        }</td>
       <td>${l.score ?? "—"}</td>
       <td><small>${esc(l.skipReason || (l.flaws || []).slice(0, 2).join("; ") || (l.reply?.summary ?? ""))}</small></td>
       <td>
@@ -281,6 +289,10 @@ $("#btn-bulk-export").addEventListener("click", () => {
 
 $("#btn-export-all").addEventListener("click", () => {
   runAction("Exporting all leads…", () => window.outreach.exportLeads({}));
+});
+
+$("#btn-verify-leads").addEventListener("click", () => {
+  runAction("Checking emails for bounce risk…", () => window.outreach.verifyLeads({ all: true }));
 });
 
 // ---------- lead detail modal (notes, tags, unsubscribe) ----------

@@ -41,6 +41,16 @@ node src/cli.js findleads "dentist" "Austin, TX" --no-scrape      # faster, OSM 
 ```
 Coverage varies by area (it's community-mapped data), so try a few wordings if results are thin. Businesses without a public email still import with their website — you can audit them and add an email later.
 
+## Email verification (reducing bounces)
+
+Every email is checked automatically right before drafting: syntax, whether the domain even has a mail server (catches typos and dead/parked domains), and known disposable/throwaway domains. Failing addresses are skipped with a reason before any AI cost is spent — role addresses like `info@`/`contact@`/`sales@` are **not** filtered, since those are normal small-business inboxes. Turn this off, or add an optional deep-verification API key (e.g. AbstractAPI's email validation) for a real mailbox-existence check, in **Settings → Email verification**.
+
+CLI equivalent:
+```sh
+node src/cli.js verifyleads --all   # re-check every lead's email at once
+node src/cli.js draft               # also verifies automatically before drafting
+```
+
 ## Facebook DMs (manual outreach queue)
 
 The **Facebook DMs** page adds a second outreach channel for leads whose website links to a Facebook Page (captured automatically by Find Leads). Click **Generate DM drafts** to have Claude write a short, casual Messenger-style message per eligible lead, referencing the same real flaw found in that lead's website audit.

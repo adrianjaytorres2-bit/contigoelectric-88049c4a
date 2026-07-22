@@ -10,7 +10,7 @@ const { spawn } = require("node:child_process");
 // this machine/user — they won't decrypt if settings.json is copied
 // elsewhere, which is expected.
 const ENC_PREFIX = "enc:v1:";
-const SECRET_FIELDS = ["anthropicApiKey", "smtpPass", "imapPass", "googleApiKey"];
+const SECRET_FIELDS = ["anthropicApiKey", "smtpPass", "imapPass", "googleApiKey", "emailVerifyApiKey"];
 
 function encryptField(v) {
   if (!v || typeof v !== "string" || v.startsWith(ENC_PREFIX)) return v;
@@ -81,6 +81,8 @@ const defaultSettings = {
   imapPass: "",
   chromiumPath: "",
   googleApiKey: "",
+  emailVerifyEnabled: true,
+  emailVerifyApiKey: "",
 };
 
 function settingsFile() {
@@ -142,6 +144,7 @@ function engineConfig(s) {
     abTestEnabled: !!s.abTestEnabled,
     abVariantAStyle: s.abVariantAStyle || "natural",
     abVariantBStyle: s.abVariantBStyle || "direct",
+    emailVerifyEnabled: s.emailVerifyEnabled !== false,
   };
 }
 
@@ -167,6 +170,7 @@ function engineEnv(s) {
     ...(s.imapPass ? { IMAP_PASS: s.imapPass } : {}),
     ...(s.chromiumPath ? { OUTREACH_CHROMIUM: s.chromiumPath } : {}),
     ...(s.googleApiKey ? { GOOGLE_API_KEY: s.googleApiKey } : {}),
+    ...(s.emailVerifyApiKey ? { EMAIL_VERIFY_API_KEY: s.emailVerifyApiKey } : {}),
   };
 }
 
@@ -346,6 +350,7 @@ function readState() {
       facebookUrl: l.facebookUrl || null,
       phone: l.phone || null,
       industry: l.industry || null,
+      emailVerified: l.emailVerified || null,
     })),
     counts,
     sentToday,
@@ -456,6 +461,12 @@ ipcMain.handle("lead:suppress", (_e, { email, reason }) =>
 );
 ipcMain.handle("lead:unsuppress", (_e, email) => runEngine(["unsuppress", email]));
 ipcMain.handle("lead:bulkDelete", (_e, emails) => runEngine(["bulkdelete", "--emails", emails.join(",")]));
+ipcMain.handle("leads:verify", (_e, { limit, all } = {}) => {
+  const args = ["verifyleads"];
+  if (limit) args.push("--limit", String(limit));
+  if (all) args.push("--all");
+  return runEngine(args);
+});
 
 // Facebook DM queue — drafts only, never sent automatically. You copy each
 // message and send it yourself from your own account.

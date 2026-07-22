@@ -8,6 +8,7 @@ import { draftEmail, draftFollowup, classifyReply, draftFbDm } from "./writer.js
 import { transport, sendEmail, sleep, sentToday, toHtmlEmail, appendUnsubscribeFooter } from "./sender.js";
 import { fetchReplies } from "./inbox.js";
 import { findLeads } from "./leadgen.js";
+import { verifyEmail, checkEmailFree } from "./verify.js";
 import { writeReport } from "./report.js";
 
 const { STATUS } = store;
@@ -112,6 +113,10 @@ async function main() {
       if (!email || !subject || !body || typeof email !== "string")
         die('usage: outreach quicksend --email a@b.com --subject "..." --body "..." [--name] [--company]');
       if (store.isSuppressed(db, email)) die(`${email} is on your suppression list (unsubscribed) — refusing to send.`);
+      if (config.emailVerifyEnabled !== false) {
+        const check = await checkEmailFree(email);
+        if (!check.ok) console.log(`⚠ Warning: ${email} — ${check.reason}. Sending anyway since this was a deliberate one-off.`);
+      }
       const name = flag(args, "--name") || "";
       const company = flag(args, "--company") || "";
       const website = store.normalizeUrl(flag(args, "--website") || "");
@@ -196,6 +201,15 @@ async function main() {
           lead.status = STATUS.SKIPPED;
           lead.skipReason = "unsubscribed — on suppression list";
           console.log(`Skipping ${lead.email}: unsubscribed (no draft written, no cost).`);
+          store.save(db);
+          continue;
+        }
+        const verification = await verifyEmail(lead.email, config);
+        lead.emailVerified = { ...verification, checkedAt: new Date().toISOString() };
+        if (verification.status === "invalid") {
+          lead.status = STATUS.SKIPPED;
+          lead.skipReason = `email likely to bounce — ${verification.reason}`;
+          console.log(`Skipping ${lead.email}: ${verification.reason} (no draft written, no cost).`);
           store.save(db);
           continue;
         }
@@ -517,6 +531,35 @@ async function main() {
       break;
     }
 
+    case "verifyleads": {
+      // Re-check email addresses on existing leads without touching drafts —
+      // useful before a big send, or to check leads imported before this
+      // feature existed. outreach verifyleads [--limit N] [--all]
+      const limit = Number(flag(args, "--limit") || Infinity);
+      const all = args.includes("--all");
+      const targets = Object.values(db.leads)
+        .filter((l) => l.email && (all || !l.emailVerified))
+        .slice(0, limit);
+      if (!targets.length) return console.log("No leads need checking (use --all to re-check everyone).");
+      let valid = 0, risky = 0, invalid = 0;
+      for (const lead of targets) {
+        const verification = await verifyEmail(lead.email, config);
+        lead.emailVerified = { ...verification, checkedAt: new Date().toISOString() };
+        if (verification.status === "invalid") {
+          invalid++;
+          console.log(`✗ ${lead.email}: ${verification.reason}`);
+        } else if (verification.status === "risky") {
+          risky++;
+          console.log(`⚠ ${lead.email}: ${verification.reason}`);
+        } else {
+          valid++;
+        }
+        store.save(db);
+      }
+      console.log(`Checked ${targets.length}: ${valid} valid, ${risky} risky, ${invalid} likely to bounce.`);
+      break;
+    }
+
     case "findleads": {
       const query = args[0];
       const location = args[1];
@@ -701,6 +744,9 @@ Usage:
                                    --max-reviews N also skips Google Places results with more than N reviews
   outreach audit [--limit N]       Audit websites of new leads in headless Chromium
   outreach draft [--limit N]       Write personalized emails with Claude for audited leads
+                                   (also verifies each email first — likely-to-bounce addresses are
+                                   skipped before any AI cost is spent; see \`verifyleads\` to check manually)
+  outreach verifyleads [--limit N] [--all]   Check/re-check email addresses for bounce risk
   outreach setdraft <email> [--subject "..."] [--body "..."]
                                    Manually edit a lead's drafted subject/body
   outreach preview [email]         Show drafted emails before sending

@@ -439,13 +439,26 @@ async function refresh() {
       <label class="field-label">Body</label>
       <textarea class="body-input" rows="8" ${l.status === "sent" ? "disabled" : ""}>${esc(l.body)}</textarea>
       <div class="email-card-footer">
-        <span class="flaws">Score ${l.score ?? "—"} · Flaws: ${esc((l.flaws || []).join("; "))}</span>
+        <span class="flaws">Score ${l.score ?? "—"} · AI's flaws: ${esc((l.flaws || []).join("; ") || "—")}</span>
         ${
           l.status === "sent"
             ? `<span class="hint" style="margin:0;">Already sent — locked</span>`
             : `<button class="btn tiny save-draft">💾 Save changes</button><span class="save-ok"></span>`
         }
       </div>
+      ${
+        l.status === "sent"
+          ? ""
+          : `<div class="redraft-panel">
+        <label class="field-label">Tell the AI what to actually focus on (optional — overrides its own judgment on redraft)</label>
+        <textarea class="flaws-input" rows="2" placeholder="e.g. no HTTPS padlock; checkout button broken on mobile; stock photo everywhere">${esc(l.manualFlaws)}</textarea>
+        <div class="email-card-footer">
+          <button class="btn tiny save-flaws">💾 Save notes</button>
+          <button class="btn tiny primary redraft">🔄 Redraft with these notes</button>
+          <span class="redraft-status"></span>
+        </div>
+      </div>`
+      }
     </div>`
       )
       .join("") || `<div class="empty">No drafts yet — run steps 1–3 on the Dashboard.</div>`;
@@ -464,6 +477,37 @@ async function refresh() {
       const ok = card.querySelector(".save-ok");
       ok.textContent = "Saved ✓";
       setTimeout(() => (ok.textContent = ""), 2000);
+    })
+  );
+
+  $$("#emails-list .save-flaws").forEach((btn) =>
+    btn.addEventListener("click", async () => {
+      const card = btn.closest(".email-card");
+      const email = card.dataset.email;
+      const text = card.querySelector(".flaws-input").value.trim();
+      btn.disabled = true;
+      await window.outreach.setFlaws({ email, text });
+      btn.disabled = false;
+      const status = card.querySelector(".redraft-status");
+      status.textContent = "Saved ✓";
+      setTimeout(() => (status.textContent = ""), 2000);
+    })
+  );
+
+  $$("#emails-list .redraft").forEach((btn) =>
+    btn.addEventListener("click", async () => {
+      const card = btn.closest(".email-card");
+      const email = card.dataset.email;
+      const text = card.querySelector(".flaws-input").value.trim();
+      const status = card.querySelector(".redraft-status");
+      btn.disabled = true;
+      status.textContent = "Saving notes…";
+      await window.outreach.setFlaws({ email, text });
+      status.textContent = "Redrafting…";
+      await window.outreach.redraftLead(email);
+      btn.disabled = false;
+      status.textContent = "";
+      refresh();
     })
   );
 }

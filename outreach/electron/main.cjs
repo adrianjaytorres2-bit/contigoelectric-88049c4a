@@ -351,6 +351,7 @@ function readState() {
       phone: l.phone || null,
       industry: l.industry || null,
       emailVerified: l.emailVerified || null,
+      manualFlaws: l.manualFlaws || "",
     })),
     counts,
     sentToday,
@@ -419,6 +420,8 @@ ipcMain.handle("lead:setDraft", (_e, { email, subject, body }) => {
   if (body) args.push("--body", body);
   return runEngine(args);
 });
+ipcMain.handle("lead:setFlaws", (_e, { email, text }) => runEngine(["setflaws", email, "--text", text ?? ""]));
+ipcMain.handle("lead:redraft", (_e, email) => runEngine(["redraft", email]));
 ipcMain.handle("leadgen:search", (_e, { query, location, limit, scrape, independent, maxReviews }) => {
   const args = ["findleads", query, location, "--limit", String(limit || 50)];
   if (!scrape) args.push("--no-scrape");

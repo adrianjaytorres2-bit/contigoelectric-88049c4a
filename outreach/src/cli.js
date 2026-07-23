@@ -17,7 +17,11 @@ function flag(args, name) {
   const i = args.indexOf(name);
   if (i === -1) return undefined;
   const val = args[i + 1];
-  return val && !val.startsWith("--") ? val : true;
+  // A real value (including an explicit empty string, e.g. --text "" to
+  // clear a field) is returned as-is; only a genuinely missing value or the
+  // start of the next flag falls back to a bare boolean.
+  if (val === undefined || val.startsWith("--")) return true;
+  return val;
 }
 
 async function main() {
@@ -238,6 +242,62 @@ async function main() {
         }
         store.save(db);
       }
+      break;
+    }
+
+    case "setflaws": {
+      // Tell the AI what to actually focus on for one lead, overriding its
+      // own judgment on redraft — for when it fixates on a weak/irrelevant
+      // issue or misses the real one:
+      //   outreach setflaws someone@example.com --text "no HTTPS; broken checkout on mobile"
+      const email = args[0];
+      const text = flag(args, "--text");
+      const lead = Object.values(db.leads).find((l) => l.email === email);
+      if (!lead || typeof text !== "string") die('usage: outreach setflaws <email> --text "..." (blank text clears it)');
+      lead.manualFlaws = text;
+      store.save(db);
+      console.log(text ? `Set manual flaws for ${email}. Run \`redraft ${email}\` to use them.` : `Cleared manual flaws for ${email}.`);
+      break;
+    }
+
+    case "redraft": {
+      // Re-run drafting for a single already-audited lead — picks up any
+      // manual flaws set via \`setflaws\` and/or a changed style/length in
+      // Settings, without re-running the whole batch.
+      //   outreach redraft someone@example.com
+      const email = args[0];
+      const lead = Object.values(db.leads).find((l) => l.email === email);
+      if (!lead) die("usage: outreach redraft <email>");
+      if (!lead.audit) die(`${email} hasn't been audited yet — run \`audit\` first.`);
+      if (store.isSuppressed(db, lead.email)) die(`${email} is on your suppression list (unsubscribed) — refusing to redraft.`);
+      const verification = await verifyEmail(lead.email, config);
+      lead.emailVerified = { ...verification, checkedAt: new Date().toISOString() };
+      if (verification.status === "invalid") die(`${email}: ${verification.reason} — won't draft an email likely to bounce.`);
+      process.stdout.write(`Redrafting for ${lead.company || lead.website}... `);
+      try {
+        let draftConfig = config;
+        let variant = lead.draft?.variant || null;
+        if (config.abTestEnabled) {
+          variant = abVariantFor(lead.id); // stays stable across redrafts, same as the original draft
+          const variantStyle = variant === "A" ? config.abVariantAStyle : config.abVariantBStyle;
+          draftConfig = { ...config, emailStyle: variantStyle };
+        }
+        const draft = await draftEmail(lead, draftConfig);
+        if (variant) draft.variant = variant;
+        lead.draft = draft;
+        lead.edited = false; // fresh AI draft replaces any prior manual edits
+        if (draft.quality_score < config.minQualityScore) {
+          lead.status = STATUS.SKIPPED;
+          lead.skipReason = `quality_score ${draft.quality_score} < threshold ${config.minQualityScore}`;
+          console.log(`skipped (site too good: score ${draft.quality_score})`);
+        } else {
+          lead.status = STATUS.DRAFTED;
+          console.log(`ok (score ${draft.quality_score})`);
+        }
+      } catch (err) {
+        console.log(`error: ${err.message}`);
+      }
+      store.save(db);
       break;
     }
 
@@ -749,6 +809,8 @@ Usage:
   outreach verifyleads [--limit N] [--all]   Check/re-check email addresses for bounce risk
   outreach setdraft <email> [--subject "..."] [--body "..."]
                                    Manually edit a lead's drafted subject/body
+  outreach setflaws <email> --text "..."   Tell the AI which real issues to focus on for one lead (blank clears it)
+  outreach redraft <email>          Re-run the AI draft for one lead, using any manual flaws set above
   outreach preview [email]         Show drafted emails before sending
   outreach override [email]        Re-queue skipped leads (that have a draft) so they send anyway
   outreach send [--dry-run]        Send drafted emails via SMTP (throttled, daily cap)

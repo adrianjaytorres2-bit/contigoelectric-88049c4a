@@ -41,6 +41,16 @@ node src/cli.js findleads "dentist" "Austin, TX" --no-scrape      # faster, OSM 
 ```
 Coverage varies by area (it's community-mapped data), so try a few wordings if results are thin. Businesses without a public email still import with their website — you can audit them and add an email later.
 
+## Redrafting with your own notes
+
+If the AI fixates on a weak or irrelevant flaw instead of the real problem with a site, go to the **Emails** page — each drafted email has a "Tell the AI what to actually focus on" box underneath it. Type the real issue(s) you noticed, hit **🔄 Redraft with these notes**, and it rewrites the email prioritizing exactly what you said over its own judgment. This still goes through the AI (so it stays in your chosen voice/length/style) — it's different from directly editing the email text, which is also always available right above it.
+
+CLI equivalent:
+```sh
+node src/cli.js setflaws jane@example.com --text "no HTTPS padlock; checkout broken on mobile"
+node src/cli.js redraft jane@example.com
+```
+
 ## Email verification (reducing bounces)
 
 Every email is checked automatically right before drafting: syntax, whether the domain even has a mail server (catches typos and dead/parked domains), and known disposable/throwaway domains. Failing addresses are skipped with a reason before any AI cost is spent — role addresses like `info@`/`contact@`/`sales@` are **not** filtered, since those are normal small-business inboxes. Turn this off, or add an optional deep-verification API key (e.g. AbstractAPI's email validation) for a real mailbox-existence check, in **Settings → Email verification**.

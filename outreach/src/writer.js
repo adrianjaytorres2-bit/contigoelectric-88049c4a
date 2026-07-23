@@ -136,6 +136,9 @@ export async function draftEmail(lead, config) {
         null,
         2
       )}\n\nWebsite audit facts:\n${JSON.stringify(lead.audit.facts, null, 2)}` +
+      (lead.manualFlaws
+        ? `\n\nIMPORTANT — a human reviewed this site themselves and identified these specific issue(s). These are confirmed real and take priority over anything else you notice; base the email primarily on these rather than picking your own angle:\n${lead.manualFlaws}`
+        : "") +
       (lead.languageOverride ? `\n\nWrite this email in ${lead.languageOverride}.` : ""),
   });
 

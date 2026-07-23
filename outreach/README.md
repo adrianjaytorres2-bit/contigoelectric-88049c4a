@@ -51,6 +51,15 @@ node src/cli.js setflaws jane@example.com --text "no HTTPS padlock; checkout bro
 node src/cli.js redraft jane@example.com
 ```
 
+## Adding something you found after drafting
+
+Found something extra after an email was already written — a bad review, a news mention, anything relevant? On the **Emails** page, below the redraft box, is a second one: paste in what you found and hit **✨ Summarize & add to draft**. The AI turns it into one natural sentence and weaves it into the existing email — everything else stays as-is; it's a small targeted edit, not a full rewrite (see "Redrafting with your own notes" above for the full-rewrite version).
+
+CLI equivalent:
+```sh
+node src/cli.js addfinding jane@example.com --text "left a 1-star review complaining about their 3-day response time"
+```
+
 ## Email verification (reducing bounces)
 
 Every email is checked automatically right before drafting: syntax, whether the domain even has a mail server (catches typos and dead/parked domains), and known disposable/throwaway domains. Failing addresses are skipped with a reason before any AI cost is spent — role addresses like `info@`/`contact@`/`sales@` are **not** filtered, since those are normal small-business inboxes. Turn this off, or add an optional deep-verification API key (e.g. AbstractAPI's email validation) for a real mailbox-existence check, in **Settings → Email verification**.

@@ -155,6 +155,51 @@ export async function draftEmail(lead, config) {
   return JSON.parse(textBlock.text);
 }
 
+const INSERT_FINDING_SCHEMA = {
+  type: "object",
+  properties: {
+    body: {
+      type: "string",
+      description: "The full updated email body, ready to send. No placeholders.",
+    },
+  },
+  required: ["body"],
+  additionalProperties: false,
+};
+
+// Weaves something the sender found AFTER the fact (a review, a note about
+// the business, anything relevant) into an already-drafted email — a small,
+// targeted edit, not a full rewrite. Everything else in the email stays as
+// close to untouched as possible; only what's needed to fit the addition in
+// naturally changes.
+export async function insertFinding(lead, rawFinding, config) {
+  const response = await client().messages.create({
+    model: MODEL,
+    max_tokens: 1536,
+    thinking: { type: "adaptive" },
+    system: `You are editing an already-written cold outreach email on behalf of ${config.senderName} of ${config.senderBusiness}, in this voice: ${EMAIL_STYLES[config.emailStyle]?.instruction || EMAIL_STYLES.natural.instruction}
+
+The sender found something new after the email was drafted and wants it woven in. Your job:
+- Summarize the raw finding into one concise, natural sentence or short addition (no bullet points, no "Also, I noticed" filler — write it like it always belonged there).
+- Insert it wherever it reads best (often right after the opening observation, or wherever it fits the existing flow).
+- Change nothing else about the email — same wording, same structure, same sign-off — except what's minimally needed to make the addition read naturally.
+- Never invent details beyond what the finding actually says.
+
+${ANTI_AI_TELLS}`,
+    output_config: { format: { type: "json_schema", schema: INSERT_FINDING_SCHEMA } },
+    messages: [
+      {
+        role: "user",
+        content:
+          `Current email body:\n---\n${lead.draft.body}\n---\n\n` +
+          `Something the sender found and wants added:\n---\n${rawFinding}\n---`,
+      },
+    ],
+  });
+  const textBlock = response.content.find((b) => b.type === "text");
+  return JSON.parse(textBlock.text).body;
+}
+
 const FOLLOWUP_SCHEMA = {
   type: "object",
   properties: {

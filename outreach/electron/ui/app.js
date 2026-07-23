@@ -457,6 +457,14 @@ async function refresh() {
           <button class="btn tiny primary redraft">🔄 Redraft with these notes</button>
           <span class="redraft-status"></span>
         </div>
+      </div>
+      <div class="redraft-panel">
+        <label class="field-label">Found something else after drafting? Paste it and add it to this email</label>
+        <textarea class="finding-input" rows="2" placeholder="e.g. a 1-star review complaining about their 3-day response time"></textarea>
+        <div class="email-card-footer">
+          <button class="btn tiny primary add-finding">✨ Summarize &amp; add to draft</button>
+          <span class="finding-status"></span>
+        </div>
       </div>`
       }
     </div>`
@@ -505,6 +513,27 @@ async function refresh() {
       await window.outreach.setFlaws({ email, text });
       status.textContent = "Redrafting…";
       await window.outreach.redraftLead(email);
+      btn.disabled = false;
+      status.textContent = "";
+      refresh();
+    })
+  );
+
+  $$("#emails-list .add-finding").forEach((btn) =>
+    btn.addEventListener("click", async () => {
+      const card = btn.closest(".email-card");
+      const email = card.dataset.email;
+      const input = card.querySelector(".finding-input");
+      const text = input.value.trim();
+      const status = card.querySelector(".finding-status");
+      if (!text) {
+        status.textContent = "Type something first.";
+        setTimeout(() => (status.textContent = ""), 2000);
+        return;
+      }
+      btn.disabled = true;
+      status.textContent = "Adding…";
+      await window.outreach.addFinding({ email, text });
       btn.disabled = false;
       status.textContent = "";
       refresh();

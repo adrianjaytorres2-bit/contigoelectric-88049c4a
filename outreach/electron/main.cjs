@@ -422,6 +422,7 @@ ipcMain.handle("lead:setDraft", (_e, { email, subject, body }) => {
 });
 ipcMain.handle("lead:setFlaws", (_e, { email, text }) => runEngine(["setflaws", email, "--text", text ?? ""]));
 ipcMain.handle("lead:redraft", (_e, email) => runEngine(["redraft", email]));
+ipcMain.handle("lead:addFinding", (_e, { email, text }) => runEngine(["addfinding", email, "--text", text ?? ""]));
 ipcMain.handle("leadgen:search", (_e, { query, location, limit, scrape, independent, maxReviews }) => {
   const args = ["findleads", query, location, "--limit", String(limit || 50)];
   if (!scrape) args.push("--no-scrape");

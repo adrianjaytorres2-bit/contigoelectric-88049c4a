@@ -4,7 +4,7 @@ import { loadConfig, effectiveDailyCap, abVariantFor } from "./config.js";
 import * as store from "./store.js";
 import { csvToObjects } from "./csv.js";
 import { auditSites } from "./audit.js";
-import { draftEmail, draftFollowup, classifyReply, draftFbDm } from "./writer.js";
+import { draftEmail, draftFollowup, classifyReply, draftFbDm, insertFinding } from "./writer.js";
 import { transport, sendEmail, sleep, sentToday, toHtmlEmail, appendUnsubscribeFooter } from "./sender.js";
 import { fetchReplies } from "./inbox.js";
 import { findLeads } from "./leadgen.js";
@@ -193,6 +193,28 @@ async function main() {
       lead.edited = true;
       store.save(db);
       console.log(`Updated draft for ${email}.`);
+      break;
+    }
+
+    case "addfinding": {
+      // Weave something found AFTER drafting into the existing email — a
+      // small targeted edit, not a full rewrite (see \`redraft\` for that):
+      //   outreach addfinding someone@example.com --text "left a 1-star review complaining about their 3-day response time"
+      const email = args[0];
+      const text = flag(args, "--text");
+      const lead = Object.values(db.leads).find((l) => l.email === email);
+      if (!lead || typeof text !== "string" || !text) die('usage: outreach addfinding <email> --text "..."');
+      if (!lead.draft) die(`${email} has no draft yet — run \`draft\` first.`);
+      process.stdout.write(`Adding finding to draft for ${lead.company || email}... `);
+      try {
+        const body = await insertFinding(lead, text, config);
+        lead.draft.body = body;
+        lead.edited = true;
+        store.save(db);
+        console.log("ok");
+      } catch (err) {
+        console.log(`error: ${err.message}`);
+      }
       break;
     }
 
@@ -811,6 +833,7 @@ Usage:
                                    Manually edit a lead's drafted subject/body
   outreach setflaws <email> --text "..."   Tell the AI which real issues to focus on for one lead (blank clears it)
   outreach redraft <email>          Re-run the AI draft for one lead, using any manual flaws set above
+  outreach addfinding <email> --text "..."   Summarize something found after drafting and weave it into the existing email
   outreach preview [email]         Show drafted emails before sending
   outreach override [email]        Re-queue skipped leads (that have a draft) so they send anyway
   outreach send [--dry-run]        Send drafted emails via SMTP (throttled, daily cap)

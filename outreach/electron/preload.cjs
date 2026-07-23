@@ -12,6 +12,7 @@ contextBridge.exposeInMainWorld("outreach", {
   setDraft: (params) => ipcRenderer.invoke("lead:setDraft", params),
   setFlaws: (params) => ipcRenderer.invoke("lead:setFlaws", params),
   redraftLead: (email) => ipcRenderer.invoke("lead:redraft", email),
+  addFinding: (params) => ipcRenderer.invoke("lead:addFinding", params),
   addLead: (params) => ipcRenderer.invoke("lead:add", params),
   quickSend: (params) => ipcRenderer.invoke("lead:quickSend", params),
   setNote: (params) => ipcRenderer.invoke("lead:note", params),

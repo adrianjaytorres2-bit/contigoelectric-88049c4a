@@ -97,9 +97,10 @@ $("#btn-findleads").addEventListener("click", () => {
   const scrape = $("#lg-scrape").checked;
   const independent = $("#lg-independent").checked;
   const maxReviews = independent && $("#lg-maxreviews").value ? Number($("#lg-maxreviews").value) : null;
+  const includeNoWebsite = $("#lg-nowebsite").checked;
   if ($("#lg-console")) $("#lg-console").textContent = "";
   runAction(`Finding "${query}" in ${location}…`, () =>
-    window.outreach.findLeads({ query, location, limit, scrape, independent, maxReviews })
+    window.outreach.findLeads({ query, location, limit, scrape, independent, maxReviews, includeNoWebsite })
   );
 });
 
@@ -169,6 +170,13 @@ $("#lead-search").addEventListener("input", (e) => {
   leadQuery = e.target.value.toLowerCase().trim();
   renderLeads();
 });
+
+// ---------- emails search ----------
+let emailQuery = "";
+$("#email-search").addEventListener("input", (e) => {
+  emailQuery = e.target.value.toLowerCase().trim();
+  renderEmails(lastState);
+});
 $$("#lead-filters .chip").forEach((chip) =>
   chip.addEventListener("click", () => {
     $$("#lead-filters .chip").forEach((c) => c.classList.remove("active"));
@@ -203,7 +211,13 @@ function renderLeads() {
         (l) => `<tr>
       <td><input type="checkbox" class="row-check" data-email="${esc(l.email)}" ${selectedEmails.has(l.email) ? "checked" : ""} /></td>
       <td>${esc(l.name) || "—"}<br><small>${esc(l.company)} · ${esc(l.email)}</small></td>
-      <td><a href="${esc(l.website)}" target="_blank">${esc(l.website.replace(/^https?:\/\//, ""))}</a></td>
+      <td>${
+        l.website
+          ? `<a href="${esc(l.website)}" target="_blank">${esc(l.website.replace(/^https?:\/\//, ""))}</a>`
+          : l.phone
+          ? `<span class="hint" style="margin:0;">📞 ${esc(l.phone)} (no website)</span>`
+          : `<span class="hint" style="margin:0;">—</span>`
+      }</td>
       <td><span class="badge ${esc(l.status)}">${esc(l.status)}</span>${
           l.reply ? `<br><span class="badge ${esc(l.reply.intent)}">${esc(l.reply.intent)}</span>` : ""
         }${l.variant ? `<br><span class="badge">variant ${esc(l.variant)}</span>` : ""}${
@@ -375,8 +389,11 @@ $("#btn-suppress-lead").addEventListener("click", async () => {
 const esc = (s) =>
   String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
+let lastState = null;
+
 async function refresh() {
   const state = await window.outreach.getState();
+  lastState = state;
 
   // config status dots + banner
   $("#dot-identity").classList.toggle("on", state.configured.identity);
@@ -425,14 +442,30 @@ async function refresh() {
   renderFacebook(state);
 
   // emails
+  renderEmails(state);
+}
+
+function visibleEmails(state) {
   const withDrafts = state.leads.filter((l) => l.subject);
+  if (!emailQuery) return withDrafts;
+  return withDrafts.filter((l) => {
+    const haystack = [l.name, l.company, l.email, l.subject, l.body];
+    return haystack.some((v) => String(v || "").toLowerCase().includes(emailQuery));
+  });
+}
+
+function renderEmails(state) {
+  const withDrafts = visibleEmails(state);
   $("#emails-list").innerHTML =
     withDrafts
       .map(
         (l) => `<div class="email-card" data-email="${esc(l.email)}">
       <div class="head">
         <span class="to">${esc(l.name)} <small>&lt;${esc(l.email)}&gt; · ${esc(l.company)}</small></span>
-        <span class="badge ${esc(l.status)}">${esc(l.status)}</span>
+        <span style="display:flex;align-items:center;gap:8px;">
+          ${l.website ? `<a href="${esc(l.website)}" target="_blank" class="btn tiny">🌐 View site</a>` : ""}
+          <span class="badge ${esc(l.status)}">${esc(l.status)}</span>
+        </span>
       </div>
       <label class="field-label">Subject</label>
       <input class="subject-input" value="${esc(l.subject)}" ${l.status === "sent" ? "disabled" : ""} />
@@ -469,7 +502,10 @@ async function refresh() {
       }
     </div>`
       )
-      .join("") || `<div class="empty">No drafts yet — run steps 1–3 on the Dashboard.</div>`;
+      .join("") ||
+    `<div class="empty">${
+      emailQuery ? "No drafts match your search." : "No drafts yet — run steps 1–3 on the Dashboard."
+    }</div>`;
 
   $$("#emails-list .save-draft").forEach((btn) =>
     btn.addEventListener("click", async () => {

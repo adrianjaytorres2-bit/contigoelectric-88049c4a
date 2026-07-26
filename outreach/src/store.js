@@ -23,7 +23,18 @@ export function save(db) {
   fs.renameSync(tmp, DB_FILE);
 }
 
-export function leadId(email, website) {
+export function leadId(email, website, phone) {
+  // Phone-only leads (no website, from Find Leads' "include no website"
+  // option) have no email/website to hash — fall back to the phone number
+  // so two different phone-only businesses don't collide onto the same ID
+  // (the plain email+website hash below would be identical for both: "|").
+  if (!email && !website && phone) {
+    return crypto
+      .createHash("sha1")
+      .update(`phone|${String(phone).replace(/\D/g, "")}`)
+      .digest("hex")
+      .slice(0, 12);
+  }
   return crypto
     .createHash("sha1")
     .update(`${(email || "").toLowerCase()}|${normalizeUrl(website)}`)

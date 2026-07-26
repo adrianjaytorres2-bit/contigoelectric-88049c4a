@@ -51,6 +51,19 @@ node src/cli.js setflaws jane@example.com --text "no HTTPS padlock; checkout bro
 node src/cli.js redraft jane@example.com
 ```
 
+## Viewing a site and searching drafts
+
+Every drafted email on the **Emails** page has a **🌐 View site** button next to its status badge that opens the actual website in your regular browser. A search bar above the list filters by name, company, email, subject, or body.
+
+## Leads with no website
+
+Check **"Also include businesses with no website"** on the **Find Leads** page to stop skipping businesses that only show up with a phone number and/or email. A lead with an email but no site gets a dedicated "you don't have a website" pitch instead of the usual audit-based one — no website is often the strongest possible pitch, bigger than a bad website. A lead with only a phone number gets added to your Leads list but flagged as call-manually — it can't be auto-emailed.
+
+CLI equivalent:
+```sh
+node src/cli.js findleads "plumber" "Tampa, FL" --include-no-website
+```
+
 ## Adding something you found after drafting
 
 Found something extra after an email was already written — a bad review, a news mention, anything relevant? On the **Emails** page, below the redraft box, is a second one: paste in what you found and hit **✨ Summarize & add to draft**. The AI turns it into one natural sentence and weaves it into the existing email — everything else stays as-is; it's a small targeted edit, not a full rewrite (see "Redrafting with your own notes" above for the full-rewrite version).

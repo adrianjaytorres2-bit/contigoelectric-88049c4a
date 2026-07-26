@@ -4,7 +4,7 @@ import { loadConfig, effectiveDailyCap, abVariantFor } from "./config.js";
 import * as store from "./store.js";
 import { csvToObjects } from "./csv.js";
 import { auditSites } from "./audit.js";
-import { draftEmail, draftFollowup, classifyReply, draftFbDm, insertFinding } from "./writer.js";
+import { draftEmail, draftFollowup, classifyReply, draftFbDm, insertFinding, draftNoWebsiteEmail } from "./writer.js";
 import { transport, sendEmail, sleep, sentToday, toHtmlEmail, appendUnsubscribeFooter } from "./sender.js";
 import { fetchReplies } from "./inbox.js";
 import { findLeads } from "./leadgen.js";
@@ -159,19 +159,31 @@ async function main() {
       const limit = Number(flag(args, "--limit") || Infinity);
       const pending = store.leadsByStatus(db, STATUS.NEW).slice(0, limit);
       if (!pending.length) return console.log("No new leads to audit.");
-      console.log(`Auditing ${pending.length} site(s)...`);
-      const results = await auditSites(pending, config, (l) =>
-        console.log(`  → ${l.website}`)
-      );
-      for (const lead of pending) {
-        const res = results.get(lead.id);
-        if (res.ok) {
-          lead.audit = { facts: res.facts, screenshotPath: res.screenshotPath };
-          lead.status = STATUS.AUDITED;
-        } else {
-          lead.status = STATUS.SKIPPED;
-          lead.skipReason = res.reason;
-          console.log(`  ✗ ${lead.website}: ${res.reason} (no credit wasted — skipped)`);
+      // Leads with no website (from "include leads with no website" in Find
+      // Leads) have nothing to audit — mark them ready for the no-website
+      // pitch directly, no browser/Playwright involved, no time wasted.
+      const noSite = pending.filter((l) => !l.website);
+      const withSite = pending.filter((l) => l.website);
+      for (const lead of noSite) {
+        lead.audit = { facts: null, noWebsite: true };
+        lead.status = STATUS.AUDITED;
+      }
+      if (noSite.length) console.log(`${noSite.length} lead(s) have no website — queued for the no-website pitch directly.`);
+      if (withSite.length) {
+        console.log(`Auditing ${withSite.length} site(s)...`);
+        const results = await auditSites(withSite, config, (l) =>
+          console.log(`  → ${l.website}`)
+        );
+        for (const lead of withSite) {
+          const res = results.get(lead.id);
+          if (res.ok) {
+            lead.audit = { facts: res.facts, screenshotPath: res.screenshotPath };
+            lead.status = STATUS.AUDITED;
+          } else {
+            lead.status = STATUS.SKIPPED;
+            lead.skipReason = res.reason;
+            console.log(`  ✗ ${lead.website}: ${res.reason} (no credit wasted — skipped)`);
+          }
         }
       }
       store.save(db);
@@ -223,6 +235,16 @@ async function main() {
       const audited = store.leadsByStatus(db, STATUS.AUDITED).slice(0, limit);
       if (!audited.length) return console.log("No audited leads to draft. Run `audit` first.");
       for (const lead of audited) {
+        if (!lead.email) {
+          // No website AND no email — found by phone number only. Can't be
+          // auto-emailed; surfaced as skipped with the number so it's not
+          // silently lost, but you have to reach out yourself.
+          lead.status = STATUS.SKIPPED;
+          lead.skipReason = lead.phone ? `no email address — call ${lead.phone} manually` : "no email address";
+          console.log(`Skipping ${lead.company || lead.id}: no email address${lead.phone ? ` (phone: ${lead.phone})` : ""}.`);
+          store.save(db);
+          continue;
+        }
         if (store.isSuppressed(db, lead.email)) {
           lead.status = STATUS.SKIPPED;
           lead.skipReason = "unsubscribed — on suppression list";
@@ -239,7 +261,7 @@ async function main() {
           store.save(db);
           continue;
         }
-        process.stdout.write(`Drafting for ${lead.company || lead.website}... `);
+        process.stdout.write(`Drafting for ${lead.company || lead.website || lead.email}... `);
         try {
           let draftConfig = config;
           let variant = null;
@@ -248,7 +270,9 @@ async function main() {
             const variantStyle = variant === "A" ? config.abVariantAStyle : config.abVariantBStyle;
             draftConfig = { ...config, emailStyle: variantStyle };
           }
-          const draft = await draftEmail(lead, draftConfig);
+          const draft = lead.audit?.noWebsite
+            ? { ...(await draftNoWebsiteEmail(lead, draftConfig)), quality_score: 100, flaws: ["no website at all"] }
+            : await draftEmail(lead, draftConfig);
           if (variant) draft.variant = variant;
           lead.draft = draft;
           if (draft.quality_score < config.minQualityScore) {
@@ -304,7 +328,9 @@ async function main() {
           const variantStyle = variant === "A" ? config.abVariantAStyle : config.abVariantBStyle;
           draftConfig = { ...config, emailStyle: variantStyle };
         }
-        const draft = await draftEmail(lead, draftConfig);
+        const draft = lead.audit?.noWebsite
+          ? { ...(await draftNoWebsiteEmail(lead, draftConfig)), quality_score: 100, flaws: ["no website at all"] }
+          : await draftEmail(lead, draftConfig);
         if (variant) draft.variant = variant;
         lead.draft = draft;
         lead.edited = false; // fresh AI draft replaces any prior manual edits
@@ -646,32 +672,35 @@ async function main() {
       const query = args[0];
       const location = args[1];
       if (!query || !location)
-        die('usage: outreach findleads "<business type>" "<location>" [--limit N] [--no-scrape] [--independent] [--max-reviews N]');
+        die('usage: outreach findleads "<business type>" "<location>" [--limit N] [--no-scrape] [--independent] [--max-reviews N] [--include-no-website]');
       const limit = Number(flag(args, "--limit") || 50);
       const scrapeEmails = !args.includes("--no-scrape");
       const preferIndependent = args.includes("--independent");
+      const includeNoWebsite = args.includes("--include-no-website");
       const maxReviewsFlag = flag(args, "--max-reviews");
       const maxReviews = typeof maxReviewsFlag === "string" ? Number(maxReviewsFlag) : null;
       const results = await findLeads(
-        { query, location, limit, scrapeEmails, preferIndependent, maxReviews },
+        { query, location, limit, scrapeEmails, preferIndependent, maxReviews, includeNoWebsite },
         (msg) => console.log(msg)
       );
       let added = 0,
         dupe = 0,
         suppressed = 0,
-        companyDupe = 0;
+        companyDupe = 0,
+        phoneOnly = 0;
       for (const r of results) {
         const website = store.normalizeUrl(r.website);
-        if (!r.email && !website) continue;
+        if (!r.email && !website && !r.phone) continue;
         if (r.email && store.isSuppressed(db, r.email)) {
           suppressed++;
           continue;
         }
-        const id = store.leadId(r.email, website);
+        const id = store.leadId(r.email, website, r.phone);
         if (db.leads[id]) {
           dupe++;
           continue;
         }
+        if (!r.email && !website) phoneOnly++;
         if (store.findByCompany(db, r.company)) companyDupe++;
         db.leads[id] = {
           id,
@@ -694,7 +723,7 @@ async function main() {
       store.save(db);
       const withEmail = results.filter((r) => r.email).length;
       console.log(
-        `Added ${added} new lead(s) (${dupe} already in your list${suppressed ? `, ${suppressed} unsubscribed and skipped` : ""}${companyDupe ? `, ${companyDupe} possible company duplicates — review manually` : ""}). ${withEmail} have an email; the rest have a website you can audit and add an email to later.`
+        `Added ${added} new lead(s) (${dupe} already in your list${suppressed ? `, ${suppressed} unsubscribed and skipped` : ""}${companyDupe ? `, ${companyDupe} possible company duplicates — review manually` : ""}${phoneOnly ? `, ${phoneOnly} have only a phone number — call them manually, no auto-email` : ""}). ${withEmail} have an email; the rest have a website you can audit and add an email to later.`
       );
       break;
     }
@@ -820,10 +849,12 @@ Usage:
                                    Manually add a single lead
   outreach quicksend --email a@b.com --subject "..." --body "..." [--name] [--company]
                                    Write + send a one-off email immediately, no audit/draft needed
-  outreach findleads "<type>" "<location>" [--limit N] [--no-scrape] [--independent] [--max-reviews N]
+  outreach findleads "<type>" "<location>" [--limit N] [--no-scrape] [--independent] [--max-reviews N] [--include-no-website]
                                    Generate leads from OpenStreetMap (free) — e.g. "plumber" "Tampa, FL"
                                    --independent filters out chains/franchises (AI + duplicate-name detection)
                                    --max-reviews N also skips Google Places results with more than N reviews
+                                   --include-no-website also keeps businesses with only a phone number/email and
+                                   no website — these get a dedicated "you don't have a website" email pitch
   outreach audit [--limit N]       Audit websites of new leads in headless Chromium
   outreach draft [--limit N]       Write personalized emails with Claude for audited leads
                                    (also verifies each email first — likely-to-bounce addresses are

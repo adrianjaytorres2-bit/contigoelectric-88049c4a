@@ -200,6 +200,52 @@ ${ANTI_AI_TELLS}`,
   return JSON.parse(textBlock.text).body;
 }
 
+const NO_WEBSITE_SCHEMA = {
+  type: "object",
+  properties: {
+    subject: { type: "string", description: "Short, curiosity-driven subject line. No clickbait." },
+    body: {
+      type: "string",
+      description: "The full plain-text email body, ready to send. No placeholders.",
+    },
+  },
+  required: ["subject", "body"],
+  additionalProperties: false,
+};
+
+// For leads found with no website at all (Find Leads' "include leads with
+// no website" option) — no site to audit, so no screenshot/flaws. The pitch
+// itself is the strongest possible one for a web-design business: they have
+// no online presence at all. Never invent a website critique.
+export async function draftNoWebsiteEmail(lead, config) {
+  const response = await client().messages.create({
+    model: MODEL,
+    max_tokens: 1536,
+    thinking: { type: "adaptive" },
+    system: `${systemPrompt(config)}
+
+Special case: this prospect has NO WEBSITE AT ALL — there is nothing to audit and no site-specific flaw to reference. Do not pretend to have looked at a website or invent any detail about one. Instead, the pitch is simply that a business with no online presence is losing customers who search for, compare, or try to verify a business online before calling or visiting — and you can build them one from scratch. Keep it low-pressure and specific to their type of business, not generic.`,
+    output_config: { format: { type: "json_schema", schema: NO_WEBSITE_SCHEMA } },
+    messages: [
+      {
+        role: "user",
+        content: `Prospect:\n${JSON.stringify(
+          {
+            name: lead.name,
+            company: lead.company,
+            industry: lead.industry || "unknown",
+            phone: lead.phone || null,
+          },
+          null,
+          2
+        )}${lead.languageOverride ? `\n\nWrite this email in ${lead.languageOverride}.` : ""}`,
+      },
+    ],
+  });
+  const textBlock = response.content.find((b) => b.type === "text");
+  return JSON.parse(textBlock.text);
+}
+
 const FOLLOWUP_SCHEMA = {
   type: "object",
   properties: {

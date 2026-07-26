@@ -423,11 +423,12 @@ ipcMain.handle("lead:setDraft", (_e, { email, subject, body }) => {
 ipcMain.handle("lead:setFlaws", (_e, { email, text }) => runEngine(["setflaws", email, "--text", text ?? ""]));
 ipcMain.handle("lead:redraft", (_e, email) => runEngine(["redraft", email]));
 ipcMain.handle("lead:addFinding", (_e, { email, text }) => runEngine(["addfinding", email, "--text", text ?? ""]));
-ipcMain.handle("leadgen:search", (_e, { query, location, limit, scrape, independent, maxReviews }) => {
+ipcMain.handle("leadgen:search", (_e, { query, location, limit, scrape, independent, maxReviews, includeNoWebsite }) => {
   const args = ["findleads", query, location, "--limit", String(limit || 50)];
   if (!scrape) args.push("--no-scrape");
   if (independent) args.push("--independent");
   if (maxReviews) args.push("--max-reviews", String(maxReviews));
+  if (includeNoWebsite) args.push("--include-no-website");
   return runEngine(args);
 });
 ipcMain.handle("run:send", (_e, { dryRun }) => runEngine(dryRun ? ["send", "--dry-run"] : ["send"]));
@@ -540,6 +541,14 @@ function createWindow() {
     },
   });
   win.removeMenu();
+  // Every target="_blank" link (lead website links, etc.) should open in the
+  // user's real default browser, not a bare uncontrolled Electron window —
+  // Electron denies new-window creation by default with no handler, so
+  // without this, clicking those links silently does nothing.
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    if (/^https?:\/\//i.test(url)) shell.openExternal(url);
+    return { action: "deny" };
+  });
   win.loadFile(path.join(__dirname, "ui", "index.html"));
 }
 

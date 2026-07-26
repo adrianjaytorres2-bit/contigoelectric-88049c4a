@@ -57,7 +57,7 @@
         <span id="dot-smtp" class="dot" title="SMTP (sending)"></span>
         <span id="dot-imap" class="dot" title="IMAP (replies)"></span>
       </div>
-      <span class="version">v3.2.106 · local &amp; private</span>
+      <span class="version">v3.2.107 · local &amp; private</span>
       <button id="btn-check-updates" class="btn tiny">🔄 Check for updates</button>
       <span id="update-status" class="update-status"></span>
       <button id="update-banner" class="btn tiny primary hidden">⬇️ Update ready — restart</button>
@@ -170,6 +170,10 @@
         <label id="lg-maxreviews-wrap" class="hidden">Max reviews (Google Places only, optional)
           <input id="lg-maxreviews" type="number" min="1" placeholder="e.g. 150" />
         </label>
+        <label class="check">
+          <input id="lg-nowebsite" type="checkbox" />
+          Also include businesses with no website (found via phone number and/or email)
+        </label>
         <button class="btn primary big" id="btn-findleads">🔎 Find leads</button>
       </div>
       <p class="hint">
@@ -182,6 +186,12 @@
         appearing at multiple locations in this search, and an AI check of each business name for recognizable
         chains/franchises — no manual blocklist to maintain. Add a max review count too (Google Places only) to
         also skip anything with a big review count, a common sign of a large chain.
+      </p>
+      <p class="hint">
+        💡 <b>Include businesses with no website</b> catches leads that would otherwise be skipped entirely.
+        If a match has an email but no site, it gets a dedicated "you don't have a website" pitch instead of
+        the usual audit-based one (there's nothing to audit). If it only has a phone number, it still gets
+        added to your Leads list but can't be auto-emailed — the app flags it so you know to call manually.
       </p>
       <div class="console-wrap">
         <div class="console-head"><span>Search log</span></div>
@@ -411,6 +421,16 @@
       </div>
 
       <div class="guide-card">
+        <h2>Viewing a site &amp; searching drafts</h2>
+        <p>Every drafted email on the <b>Emails</b> page has a <b>🌐 View site</b> button next to its status badge — opens the actual website in your regular browser (not inside the app) so you can look something up while reading the draft. A search bar above the list filters by name, company, email, subject, or body, so you can jump straight to one lead in a long list.</p>
+      </div>
+
+      <div class="guide-card">
+        <h2>Leads with no website</h2>
+        <p>Check <b>"Also include businesses with no website"</b> on the <b>Find Leads</b> page to stop skipping businesses that only show up with a phone number and/or email. Two outcomes: a lead with an email but no site gets a dedicated <i>"you don't have a website"</i> pitch instead of the usual audit-based one (there's nothing to audit, so nothing is invented) — this is often the strongest possible pitch, since having zero web presence is a bigger opportunity than a bad website. A lead with only a phone number and no email at all still gets added to your <b>Leads</b> list, but can't be auto-emailed — it's clearly flagged so you know to call it yourself.</p>
+      </div>
+
+      <div class="guide-card">
         <h2>Adding leads manually &amp; one-off emails</h2>
         <p>On the <b>Leads</b> page: <b>➕ Add lead</b> adds a single person by hand (no CSV needed) — they come in as “new” and go through the normal Audit → Generate drafts → Send pipeline like anyone else.</p>
         <p><b>✉️ Quick send</b> skips the pipeline entirely — write a subject and body yourself and it sends immediately from your configured mailbox. No audit, no AI, no queue. Use it for a one-off note to someone you already know, or to follow up outside the automated flow. It still records in your Leads list (marked “sent”) so your history stays complete.</p>
@@ -481,6 +501,9 @@
     <!-- EMAILS -->
     <section id="view-emails" class="view">
       <header class="view-header"><h1>Emails</h1><p>Review every draft before it goes out.</p></header>
+      <div class="nav-controls">
+        <input id="email-search" class="search" type="text" placeholder="🔎 Search name, company, email, subject, body…" />
+      </div>
       <div id="emails-list"></div>
     </section>
 

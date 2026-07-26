@@ -303,7 +303,15 @@ async function classifyIndependent(names, location) {
 }
 
 export async function findLeads(
-  { query, location, limit = 50, scrapeEmails = true, preferIndependent = false, maxReviews = null },
+  {
+    query,
+    location,
+    limit = 50,
+    scrapeEmails = true,
+    preferIndependent = false,
+    maxReviews = null,
+    includeNoWebsite = false,
+  },
   onProgress = () => {}
 ) {
   const useGoogle = !!process.env.GOOGLE_API_KEY;
@@ -359,21 +367,27 @@ export async function findLeads(
       onProgress(`Filtered out ${beforeDupe - candidates.length} business(es) appearing at multiple locations here.`);
   }
 
-  // Dedupe and keep only businesses we can actually reach (website or email).
+  // Dedupe and keep only businesses we can actually reach — by default that
+  // means a website or email; with includeNoWebsite, a phone number alone
+  // is also enough (these become "no website" leads with a dedicated pitch,
+  // or a manual-call-only lead if there's no email either).
   const seen = new Set();
   let leads = [];
   let noContact = 0;
+  let noWebsiteCount = 0;
   for (const c of candidates) {
     if (!c.name) continue;
     let website = c.website;
     if (website && !/^https?:\/\//.test(website)) website = "https://" + website;
-    if (!website && !c.email) {
+    const reachable = website || c.email || (includeNoWebsite && c.phone);
+    if (!reachable) {
       noContact++;
       continue;
     }
-    const key = (c.email || website || c.name).toLowerCase();
+    const key = (c.email || website || c.phone || c.name).toLowerCase();
     if (seen.has(key)) continue;
     seen.add(key);
+    if (!website) noWebsiteCount++;
     leads.push({
       name: c.name,
       company: c.name,
@@ -397,8 +411,9 @@ export async function findLeads(
 
   onProgress(
     `${candidates.length} business(es) found via ${useGoogle ? "Google Places" : "OpenStreetMap"}; ` +
-      `${leads.length} have a website or email` +
-      (noContact ? ` (${noContact} had no website/email and were skipped).` : ".")
+      `${leads.length} are reachable (website, email, or phone)` +
+      (includeNoWebsite && noWebsiteCount ? ` — ${noWebsiteCount} have no website` : "") +
+      (noContact ? ` (${noContact} had no website/email/phone and were skipped).` : ".")
   );
   if (!leads.length && !useGoogle) {
     onProgress(

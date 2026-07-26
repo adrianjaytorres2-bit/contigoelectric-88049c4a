@@ -423,12 +423,12 @@ ipcMain.handle("lead:setDraft", (_e, { email, subject, body }) => {
 ipcMain.handle("lead:setFlaws", (_e, { email, text }) => runEngine(["setflaws", email, "--text", text ?? ""]));
 ipcMain.handle("lead:redraft", (_e, email) => runEngine(["redraft", email]));
 ipcMain.handle("lead:addFinding", (_e, { email, text }) => runEngine(["addfinding", email, "--text", text ?? ""]));
-ipcMain.handle("leadgen:search", (_e, { query, location, limit, scrape, independent, maxReviews, includeNoWebsite }) => {
+ipcMain.handle("leadgen:search", (_e, { query, location, limit, scrape, independent, maxReviews, onlyNoWebsite }) => {
   const args = ["findleads", query, location, "--limit", String(limit || 50)];
   if (!scrape) args.push("--no-scrape");
   if (independent) args.push("--independent");
   if (maxReviews) args.push("--max-reviews", String(maxReviews));
-  if (includeNoWebsite) args.push("--include-no-website");
+  if (onlyNoWebsite) args.push("--only-no-website");
   return runEngine(args);
 });
 ipcMain.handle("run:send", (_e, { dryRun }) => runEngine(dryRun ? ["send", "--dry-run"] : ["send"]));

@@ -310,14 +310,15 @@ export async function findLeads(
     scrapeEmails = true,
     preferIndependent = false,
     maxReviews = null,
-    includeNoWebsite = false,
+    onlyNoWebsite = false,
   },
   onProgress = () => {}
 ) {
   const useGoogle = !!process.env.GOOGLE_API_KEY;
-  // Pull extra headroom when filtering chains, since some candidates will
-  // get filtered out and we still want to reach the requested limit.
-  const fetchLimit = preferIndependent ? limit * 2 : limit;
+  // Pull extra headroom when filtering, since candidates get discarded and we
+  // still want to reach the requested limit. onlyNoWebsite discards the large
+  // majority (most listed businesses do have a site), so it needs a lot more.
+  const fetchLimit = onlyNoWebsite ? limit * 8 : preferIndependent ? limit * 2 : limit;
   let candidates = [];
 
   if (useGoogle) {
@@ -367,27 +368,35 @@ export async function findLeads(
       onProgress(`Filtered out ${beforeDupe - candidates.length} business(es) appearing at multiple locations here.`);
   }
 
-  // Dedupe and keep only businesses we can actually reach — by default that
-  // means a website or email; with includeNoWebsite, a phone number alone
-  // is also enough (these become "no website" leads with a dedicated pitch,
-  // or a manual-call-only lead if there's no email either).
+  // Dedupe and keep only businesses we can actually reach.
+  //  - default: needs a website or an email.
+  //  - onlyNoWebsite: EXCLUSIVELY businesses with no website listed, reachable
+  //    by email or phone. Anything with a site is discarded, so this returns a
+  //    completely different set from the default rather than a superset.
   const seen = new Set();
   let leads = [];
   let noContact = 0;
-  let noWebsiteCount = 0;
+  let hasWebsiteSkipped = 0;
   for (const c of candidates) {
     if (!c.name) continue;
     let website = c.website;
     if (website && !/^https?:\/\//.test(website)) website = "https://" + website;
-    const reachable = website || c.email || (includeNoWebsite && c.phone);
-    if (!reachable) {
+    if (onlyNoWebsite) {
+      if (website) {
+        hasWebsiteSkipped++;
+        continue;
+      }
+      if (!c.email && !c.phone) {
+        noContact++;
+        continue;
+      }
+    } else if (!website && !c.email) {
       noContact++;
       continue;
     }
     const key = (c.email || website || c.phone || c.name).toLowerCase();
     if (seen.has(key)) continue;
     seen.add(key);
-    if (!website) noWebsiteCount++;
     leads.push({
       name: c.name,
       company: c.name,
@@ -409,12 +418,29 @@ export async function findLeads(
   }
   leads = leads.slice(0, limit);
 
-  onProgress(
-    `${candidates.length} business(es) found via ${useGoogle ? "Google Places" : "OpenStreetMap"}; ` +
-      `${leads.length} are reachable (website, email, or phone)` +
-      (includeNoWebsite && noWebsiteCount ? ` — ${noWebsiteCount} have no website` : "") +
-      (noContact ? ` (${noContact} had no website/email/phone and were skipped).` : ".")
-  );
+  const source = useGoogle ? "Google Places" : "OpenStreetMap";
+  if (onlyNoWebsite) {
+    const emailable = leads.filter((l) => l.email).length;
+    onProgress(
+      `${candidates.length} business(es) found via ${source}; ${leads.length} have no website listed ` +
+        `(${hasWebsiteSkipped} had one and were skipped` +
+        (noContact ? `, ${noContact} had no contact info at all` : "") +
+        `). ${emailable} of those can be emailed; the other ${leads.length - emailable} ` +
+        `${leads.length - emailable === 1 ? "is" : "are"} phone-only.`
+    );
+    if (!useGoogle) {
+      onProgress(
+        `⚠ Heads up: on OpenStreetMap a missing website is often just an unmapped field, not a business that truly has no site — ` +
+          `expect false positives. A Google Places API key (Settings) gives far more reliable "no website" data.`
+      );
+    }
+  } else {
+    onProgress(
+      `${candidates.length} business(es) found via ${source}; ` +
+        `${leads.length} have a website or email` +
+        (noContact ? ` (${noContact} had no website/email and were skipped).` : ".")
+    );
+  }
   if (!leads.length && !useGoogle) {
     onProgress(
       `Tip: OpenStreetMap coverage is thin in many US areas. Add a Google Places API key in Settings for full coverage, or try a bigger nearby city.`

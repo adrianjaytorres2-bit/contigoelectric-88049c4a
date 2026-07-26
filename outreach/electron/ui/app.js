@@ -97,10 +97,10 @@ $("#btn-findleads").addEventListener("click", () => {
   const scrape = $("#lg-scrape").checked;
   const independent = $("#lg-independent").checked;
   const maxReviews = independent && $("#lg-maxreviews").value ? Number($("#lg-maxreviews").value) : null;
-  const includeNoWebsite = $("#lg-nowebsite").checked;
+  const onlyNoWebsite = $("#lg-nowebsite").checked;
   if ($("#lg-console")) $("#lg-console").textContent = "";
   runAction(`Finding "${query}" in ${location}…`, () =>
-    window.outreach.findLeads({ query, location, limit, scrape, independent, maxReviews, includeNoWebsite })
+    window.outreach.findLeads({ query, location, limit, scrape, independent, maxReviews, onlyNoWebsite })
   );
 });
 

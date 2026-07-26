@@ -69,11 +69,13 @@ Every drafted email on the **Emails** page has a **🌐 View site** button next 
 
 ## Leads with no website
 
-Check **"Also include businesses with no website"** on the **Find Leads** page to stop skipping businesses that only show up with a phone number and/or email. A lead with an email but no site gets a dedicated "you don't have a website" pitch instead of the usual audit-based one — no website is often the strongest possible pitch, bigger than a bad website. A lead with only a phone number gets added to your Leads list but flagged as call-manually — it can't be auto-emailed.
+Check **"Only businesses with no website"** on the **Find Leads** page to hunt specifically for businesses with no site at all. This is an **exclusive** search — anything with a website is discarded, so you get a completely different list from a normal search, not a longer one. A match with an email gets a dedicated "you don't have a website" pitch instead of the usual audit-based one; a match with only a phone number is added but flagged call-manually since it can't be auto-emailed.
+
+Caveats: on free OpenStreetMap data a missing website is often just an unmapped field rather than a business that genuinely has none, so expect false positives — a Google Places API key is far more reliable here. Expect mostly phone-only results, since businesses without a site usually don't list an email either.
 
 CLI equivalent:
 ```sh
-node src/cli.js findleads "plumber" "Tampa, FL" --include-no-website
+node src/cli.js findleads "plumber" "Tampa, FL" --only-no-website
 ```
 
 ## Adding something you found after drafting

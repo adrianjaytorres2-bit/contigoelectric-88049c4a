@@ -159,9 +159,9 @@ async function main() {
       const limit = Number(flag(args, "--limit") || Infinity);
       const pending = store.leadsByStatus(db, STATUS.NEW).slice(0, limit);
       if (!pending.length) return console.log("No new leads to audit.");
-      // Leads with no website (from "include leads with no website" in Find
-      // Leads) have nothing to audit — mark them ready for the no-website
-      // pitch directly, no browser/Playwright involved, no time wasted.
+      // Leads with no website (from Find Leads' "only businesses with no
+      // website" mode) have nothing to audit — mark them ready for the
+      // no-website pitch directly, no browser/Playwright, no time wasted.
       const noSite = pending.filter((l) => !l.website);
       const withSite = pending.filter((l) => l.website);
       for (const lead of noSite) {
@@ -700,15 +700,15 @@ async function main() {
       const query = args[0];
       const location = args[1];
       if (!query || !location)
-        die('usage: outreach findleads "<business type>" "<location>" [--limit N] [--no-scrape] [--independent] [--max-reviews N] [--include-no-website]');
+        die('usage: outreach findleads "<business type>" "<location>" [--limit N] [--no-scrape] [--independent] [--max-reviews N] [--only-no-website]');
       const limit = Number(flag(args, "--limit") || 50);
       const scrapeEmails = !args.includes("--no-scrape");
       const preferIndependent = args.includes("--independent");
-      const includeNoWebsite = args.includes("--include-no-website");
+      const onlyNoWebsite = args.includes("--only-no-website");
       const maxReviewsFlag = flag(args, "--max-reviews");
       const maxReviews = typeof maxReviewsFlag === "string" ? Number(maxReviewsFlag) : null;
       const results = await findLeads(
-        { query, location, limit, scrapeEmails, preferIndependent, maxReviews, includeNoWebsite },
+        { query, location, limit, scrapeEmails, preferIndependent, maxReviews, onlyNoWebsite },
         (msg) => console.log(msg)
       );
       let added = 0,
@@ -877,12 +877,12 @@ Usage:
                                    Manually add a single lead
   outreach quicksend --email a@b.com --subject "..." --body "..." [--name] [--company]
                                    Write + send a one-off email immediately, no audit/draft needed
-  outreach findleads "<type>" "<location>" [--limit N] [--no-scrape] [--independent] [--max-reviews N] [--include-no-website]
+  outreach findleads "<type>" "<location>" [--limit N] [--no-scrape] [--independent] [--max-reviews N] [--only-no-website]
                                    Generate leads from OpenStreetMap (free) — e.g. "plumber" "Tampa, FL"
                                    --independent filters out chains/franchises (AI + duplicate-name detection)
                                    --max-reviews N also skips Google Places results with more than N reviews
-                                   --include-no-website also keeps businesses with only a phone number/email and
-                                   no website — these get a dedicated "you don't have a website" email pitch
+                                   --only-no-website returns ONLY businesses with no website listed (reachable by
+                                   email or phone) — these get a dedicated "you don't have a website" email pitch
   outreach audit [--limit N]       Audit websites of new leads in headless Chromium
   outreach draft [--limit N]       Write personalized emails with Claude for audited leads
                                    (also verifies each email first — likely-to-bounce addresses are

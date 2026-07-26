@@ -368,6 +368,12 @@ td a { color: var(--blue); text-decoration: none; }
 }
 .flaws-input:focus, .finding-input:focus { outline: none; border-color: var(--accent); }
 .redraft-status, .finding-status { color: var(--accent-2); font-size: 12.5px; font-weight: 600; }
+/* Destructive action gets its own separated row so it isn't mis-clicked
+   alongside the save/redraft buttons. */
+.delete-row {
+  display: flex; justify-content: flex-end;
+  margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border);
+}
 .empty { color: var(--muted); padding: 40px 0; text-align: center; }
 
 /* facebook DM queue */

@@ -459,7 +459,7 @@ function renderEmails(state) {
   $("#emails-list").innerHTML =
     withDrafts
       .map(
-        (l) => `<div class="email-card" data-email="${esc(l.email)}">
+        (l) => `<div class="email-card" data-email="${esc(l.email)}" data-id="${esc(l.id)}">
       <div class="head">
         <span class="to">${esc(l.name)} <small>&lt;${esc(l.email)}&gt; · ${esc(l.company)}</small></span>
         <span style="display:flex;align-items:center;gap:8px;">
@@ -500,6 +500,9 @@ function renderEmails(state) {
         </div>
       </div>`
       }
+      <div class="delete-row">
+        <button class="btn tiny danger delete-lead">🗑️ Not worth it — delete lead</button>
+      </div>
     </div>`
       )
       .join("") ||
@@ -552,6 +555,16 @@ function renderEmails(state) {
       btn.disabled = false;
       status.textContent = "";
       refresh();
+    })
+  );
+
+  $$("#emails-list .delete-lead").forEach((btn) =>
+    btn.addEventListener("click", () => {
+      const card = btn.closest(".email-card");
+      const key = card.dataset.id || card.dataset.email;
+      const email = card.dataset.email;
+      if (!confirm(`Delete this lead (${email}) and its draft? This can't be undone.\n\nNote: if you don't want it turning up again in a future Find Leads run, unsubscribe it from the Leads page instead — that keeps it permanently blocked.`)) return;
+      runAction(`Deleting ${email}…`, () => window.outreach.deleteLead({ key }));
     })
   );
 

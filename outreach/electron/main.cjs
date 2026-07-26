@@ -466,6 +466,9 @@ ipcMain.handle("lead:suppress", (_e, { email, reason }) =>
 );
 ipcMain.handle("lead:unsuppress", (_e, email) => runEngine(["unsuppress", email]));
 ipcMain.handle("lead:bulkDelete", (_e, emails) => runEngine(["bulkdelete", "--emails", emails.join(",")]));
+ipcMain.handle("lead:delete", (_e, { key, suppress } = {}) =>
+  runEngine(["deletelead", key, ...(suppress ? ["--suppress"] : [])])
+);
 ipcMain.handle("leads:verify", (_e, { limit, all } = {}) => {
   const args = ["verifyleads"];
   if (limit) args.push("--limit", String(limit));

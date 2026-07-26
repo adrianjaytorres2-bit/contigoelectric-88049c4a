@@ -51,6 +51,18 @@ node src/cli.js setflaws jane@example.com --text "no HTTPS padlock; checkout bro
 node src/cli.js redraft jane@example.com
 ```
 
+## Deleting a lead you don't want
+
+Each email card on the **Emails** page has a **🗑️ Not worth it — delete lead** button at the bottom, in its own separated row. It removes that one lead and its draft after a confirmation (works for already-sent emails too). Note that deleting does not stop the lead reappearing in a future Find Leads run — for that, use **🚫 Unsubscribe this lead** from the lead's Details panel instead.
+
+CLI equivalent:
+```sh
+node src/cli.js deletelead jane@example.com              # delete one lead
+node src/cli.js deletelead jane@example.com --suppress   # ...and never find it again
+```
+
+Unlike `bulkdelete` (which matches every lead sharing an email address), `deletelead` removes exactly one lead — two leads can legitimately share an email with different websites.
+
 ## Viewing a site and searching drafts
 
 Every drafted email on the **Emails** page has a **🌐 View site** button next to its status badge that opens the actual website in your regular browser. A search bar above the list filters by name, company, email, subject, or body.

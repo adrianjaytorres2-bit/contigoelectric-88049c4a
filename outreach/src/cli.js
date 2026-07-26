@@ -622,6 +622,34 @@ async function main() {
       break;
     }
 
+    case "deletelead": {
+      // Delete exactly ONE lead, resolved by lead id (preferred) or email:
+      //   outreach deletelead <email|leadId> [--suppress]
+      // Unlike `bulkdelete`, which matches every lead sharing an email
+      // address, this removes a single specific lead — two leads can share
+      // an email (same address, different website) and deleting one
+      // shouldn't silently take the other with it.
+      // --suppress also adds the address to the do-not-contact list so the
+      // lead can't reappear via a later import or Find Leads run.
+      const key = args[0];
+      if (!key || key.startsWith("--")) die("usage: outreach deletelead <email|leadId> [--suppress]");
+      // Resolve to the actual map key rather than trusting lead.id to match
+      // it, so a lead whose stored id ever drifted from its key still deletes.
+      const entry = db.leads[key]
+        ? [key, db.leads[key]]
+        : Object.entries(db.leads).find(([, l]) => l.email && l.email === key);
+      if (!entry) die(`No lead found: ${key}`);
+      const [foundKey, lead] = entry;
+      const label = `${lead.company || lead.name || foundKey}${lead.email ? ` <${lead.email}>` : ""}`;
+      if (args.includes("--suppress") && lead.email) {
+        store.suppress(db, lead.email, "not a fit — deleted manually");
+      }
+      delete db.leads[foundKey];
+      store.save(db);
+      console.log(`Deleted ${label}.${args.includes("--suppress") && lead.email ? " Added to the do-not-contact list so it won't come back." : ""}`);
+      break;
+    }
+
     case "bulkdelete": {
       // outreach bulkdelete --emails a@b.com,c@d.com
       const list = flag(args, "--emails");
@@ -877,6 +905,7 @@ Usage:
   outreach note <email> --text "..." [--append]   Set or append a note on a lead
   outreach tag <email> [--add tag1,tag2] [--remove tag3]   Manage tags on a lead
   outreach export <out.csv> [--status drafted]    Export leads to CSV
+  outreach deletelead <email|leadId> [--suppress]  Delete one specific lead (--suppress = never find it again)
   outreach bulkdelete --emails a@b.com,c@d.com    Delete multiple leads at once
   outreach fbdraft [--limit N] [--force]   Write Facebook DM drafts for audited leads with a Facebook Page link
   outreach fbqueue                 List Facebook DMs waiting to be sent (you send them manually)

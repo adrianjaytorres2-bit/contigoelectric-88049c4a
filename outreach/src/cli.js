@@ -5,7 +5,17 @@ import * as store from "./store.js";
 import { csvToObjects } from "./csv.js";
 import { auditSites } from "./audit.js";
 import { draftEmail, draftFollowup, classifyReply, draftFbDm, insertFinding, draftNoWebsiteEmail } from "./writer.js";
-import { transport, sendEmail, sleep, sentToday, toHtmlEmail, appendUnsubscribeFooter } from "./sender.js";
+import {
+  transport,
+  sendEmail,
+  sleep,
+  sentToday,
+  toHtmlEmail,
+  appendUnsubscribeFooter,
+  isConnectionError,
+  isHardBounce,
+  isUnknownMailbox,
+} from "./sender.js";
 import { fetchReplies } from "./inbox.js";
 import { findLeads } from "./leadgen.js";
 import { verifyEmail, checkEmailFree } from "./verify.js";
@@ -409,11 +419,25 @@ async function main() {
           console.log(`✗ ${lead.email}: ${err.message}`);
           // Auth/connection failures affect every send — stop immediately
           // instead of hammering the server (which triggers IP rate limits).
-          if (/535|invalid login|authentication|EAUTH|421|ECONNECTION|ENOTFOUND/i.test(err.message)) {
+          if (isConnectionError(err.message)) {
             console.log(
               "Stopping — this looks like a mail-server login/connection problem, not a per-lead issue. Fix your SMTP settings (host, username, password) and try again."
             );
             break;
+          }
+          // A bounce on the first send means follow-ups to the same address
+          // would just bounce again — stop them now rather than burning more
+          // sender reputation on a known-bad recipient.
+          if (isHardBounce(err.message)) {
+            lead.followupsPaused = true;
+            lead.followupsPausedReason = `bounced on first send: ${err.message.slice(0, 200)}`;
+            if (isUnknownMailbox(err.message)) {
+              store.suppress(db, lead.email, "hard bounce — mailbox does not exist");
+              console.log("   → mailbox doesn't exist. Follow-ups stopped and address suppressed.");
+            } else {
+              console.log("   → bounced. Follow-ups stopped for this lead (address kept, not suppressed).");
+            }
+            store.save(db);
           }
         }
       }
@@ -460,12 +484,15 @@ async function main() {
       const due = Object.values(db.leads).filter((l) => {
         if (l.status !== STATUS.SENT) return false; // replied leads are auto-paused
         if (store.isSuppressed(db, l.email)) return false;
+        if (l.followupsPaused) return false; // manually excluded, or auto-paused after a bounce
         if ((l.followups || []).length >= config.maxFollowups) return false;
         const last = l.followups?.length
           ? l.followups[l.followups.length - 1].sentAt
           : l.sentAt;
         return now - Date.parse(last) > config.followupAfterDays * 86400_000;
       });
+      const pausedCount = Object.values(db.leads).filter((l) => l.followupsPaused).length;
+      if (pausedCount) console.log(`${pausedCount} lead(s) are excluded from follow-ups (bounced or manually paused).`);
       if (!due.length) return console.log("No follow-ups due.");
       const budget = effectiveDailyCap(config) - sentToday(db);
       const batch = due.slice(0, Math.max(0, budget));
@@ -473,12 +500,42 @@ async function main() {
       for (const lead of batch) {
         const n = (lead.followups || []).length + 1;
         process.stdout.write(`Follow-up #${n} for ${lead.email}... `);
-        try {
-          const fu = await draftFollowup(lead, config, n);
+
+        // Re-verify before spending anything. The original send may have been
+        // weeks ago — domains expire and mailboxes get shut off — and a
+        // follow-up to an address we can already tell is dead is a second
+        // avoidable bounce against a sender reputation we're still warming.
+        const verification = await verifyEmail(lead.email, config);
+        lead.emailVerified = { ...verification, checkedAt: new Date().toISOString() };
+        if (verification.status === "invalid") {
           if (dryRun) {
-            console.log(`[dry-run]\n  Subject: ${fu.subject}\n  ${fu.body.replace(/\n/g, "\n  ")}`);
+            console.log(`[dry-run] would SKIP and stop follow-ups — ${verification.reason}`);
             continue;
           }
+          lead.followupsPaused = true;
+          lead.followupsPausedReason = `email no longer valid — ${verification.reason}`;
+          store.save(db);
+          console.log(`skipped — ${verification.reason}. Follow-ups stopped for this lead.`);
+          continue;
+        }
+
+        // Drafting (Anthropic) and sending (SMTP) are kept in separate try
+        // blocks on purpose: both can fail with the word "authentication" in
+        // the message, and running an AI error through the SMTP classifier
+        // would abort the run telling you to fix mail settings that are fine.
+        let fu;
+        try {
+          fu = await draftFollowup(lead, config, n);
+        } catch (err) {
+          console.log(`✗ couldn't write the follow-up (AI error): ${err.message}`);
+          continue;
+        }
+        if (dryRun) {
+          console.log(`[dry-run]\n  Subject: ${fu.subject}\n  ${fu.body.replace(/\n/g, "\n  ")}`);
+          continue;
+        }
+
+        try {
           const fuBody = appendUnsubscribeFooter(fu.body, config);
           const messageId = await sendEmail(t, {
             to: lead.email,
@@ -494,8 +551,62 @@ async function main() {
             await sleep(config.secondsBetweenSends * 1000);
           }
         } catch (err) {
-          console.log(`error: ${err.message}`);
+          console.log(`✗ ${err.message}`);
+          if (isConnectionError(err.message)) {
+            // Affects every send, not this one lead — stop before we hammer
+            // the server and trip an IP rate limit (same guard as `send`).
+            console.log(
+              "Stopping — this looks like a mail-server login/connection problem, not a per-lead issue. Fix your SMTP settings and try again."
+            );
+            store.save(db);
+            break;
+          }
+          if (isHardBounce(err.message)) {
+            lead.followupsPaused = true;
+            lead.followupsPausedReason = `bounced: ${err.message.slice(0, 200)}`;
+            // Only permanently suppress when the server explicitly said the
+            // mailbox doesn't exist. A bare 550 is also what spam filters and
+            // greylisting return, and suppressing on that would silently
+            // burn a reachable prospect.
+            if (isUnknownMailbox(err.message)) {
+              store.suppress(db, lead.email, "hard bounce — mailbox does not exist");
+              console.log("   → mailbox doesn't exist. Follow-ups stopped and address suppressed.");
+            } else {
+              console.log("   → bounced. Follow-ups stopped for this lead (address kept, not suppressed).");
+            }
+            store.save(db);
+          }
         }
+      }
+      break;
+    }
+
+    case "nofollowup":
+    case "resumefollowup": {
+      // Exclude a lead from the follow-up sequence without deleting it or
+      // unsubscribing it — the lead stays in your list and history, it just
+      // stops receiving automated nudges:
+      //   outreach nofollowup <email|leadId> [--reason "..."]
+      //   outreach resumefollowup <email|leadId>
+      const key = args[0];
+      if (!key || key.startsWith("--")) die(`usage: outreach ${cmd} <email|leadId>`);
+      const entry = db.leads[key]
+        ? [key, db.leads[key]]
+        : Object.entries(db.leads).find(([, l]) => l.email && l.email === key);
+      if (!entry) die(`No lead found: ${key}`);
+      const [, lead] = entry;
+      const label = lead.company || lead.name || lead.email || key;
+      if (cmd === "nofollowup") {
+        const reason = flag(args, "--reason");
+        lead.followupsPaused = true;
+        lead.followupsPausedReason = typeof reason === "string" && reason ? reason : "manually excluded";
+        store.save(db);
+        console.log(`${label} will no longer receive follow-ups (${lead.followupsPausedReason}).`);
+      } else {
+        lead.followupsPaused = false;
+        lead.followupsPausedReason = null;
+        store.save(db);
+        console.log(`${label} is back in the follow-up sequence.`);
       }
       break;
     }
@@ -897,7 +1008,10 @@ Usage:
   outreach override [email]        Re-queue skipped leads (that have a draft) so they send anyway
   outreach send [--dry-run]        Send drafted emails via SMTP (throttled, daily cap)
   outreach sendone <email|leadId>  Send one specific lead's drafted email immediately (ignores daily cap)
-  outreach followup [--dry-run]    Send due follow-ups to non-repliers
+  outreach followup [--dry-run]    Send due follow-ups to non-repliers (re-verifies each address first;
+                                   bounced/dead addresses are dropped from the sequence automatically)
+  outreach nofollowup <email|leadId> [--reason "..."]   Stop follow-ups for one lead (keeps the lead)
+  outreach resumefollowup <email|leadId>                Put it back in the follow-up sequence
   outreach inbox                   Pull replies via IMAP and classify intent
   outreach reply <email> --text "" Record + classify a reply manually
   outreach suppress <email> [--reason "..."]   Permanently opt an address out (never emailed again)

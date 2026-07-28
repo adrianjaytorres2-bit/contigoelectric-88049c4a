@@ -352,6 +352,8 @@ function readState() {
       industry: l.industry || null,
       emailVerified: l.emailVerified || null,
       manualFlaws: l.manualFlaws || "",
+      followupsPaused: !!l.followupsPaused,
+      followupsPausedReason: l.followupsPausedReason || null,
     })),
     counts,
     sentToday,
@@ -466,6 +468,10 @@ ipcMain.handle("lead:suppress", (_e, { email, reason }) =>
 );
 ipcMain.handle("lead:unsuppress", (_e, email) => runEngine(["unsuppress", email]));
 ipcMain.handle("lead:bulkDelete", (_e, emails) => runEngine(["bulkdelete", "--emails", emails.join(",")]));
+ipcMain.handle("lead:noFollowup", (_e, { key, reason } = {}) =>
+  runEngine(["nofollowup", key, ...(reason ? ["--reason", reason] : [])])
+);
+ipcMain.handle("lead:resumeFollowup", (_e, key) => runEngine(["resumefollowup", key]));
 ipcMain.handle("lead:delete", (_e, { key, suppress } = {}) =>
   runEngine(["deletelead", key, ...(suppress ? ["--suppress"] : [])])
 );

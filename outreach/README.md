@@ -51,6 +51,20 @@ node src/cli.js setflaws jane@example.com --text "no HTTPS padlock; checkout bro
 node src/cli.js redraft jane@example.com
 ```
 
+## Follow-ups & bounce protection
+
+Every address is **re-verified right before its follow-up goes out** — the first email may have been sent weeks ago, and a nudge to an address that's since gone dead is a second avoidable bounce. Failing addresses are dropped from the sequence automatically.
+
+If a send bounces (on the first send or a follow-up), follow-ups for that lead **stop immediately**. If the server explicitly says the mailbox doesn't exist, the address is also suppressed permanently. For vaguer rejections (spam-filter block, mailbox full) follow-ups stop but the address is kept — those happen to real prospects too.
+
+To remove a lead by hand: **🔍 Details** → **⏸️ Stop follow-ups**. The lead keeps its history and can be resumed anytime. This is narrower and reversible, unlike **🚫 Unsubscribe** which blocks the address from all email permanently.
+
+```sh
+node src/cli.js nofollowup jane@example.com --reason "asked to stop"
+node src/cli.js resumefollowup jane@example.com
+node src/cli.js followup --dry-run    # shows which addresses would be dropped
+```
+
 ## Deleting a lead you don't want
 
 Each email card on the **Emails** page has a **🗑️ Not worth it — delete lead** button at the bottom, in its own separated row. It removes that one lead and its draft after a confirmation (works for already-sent emails too). Note that deleting does not stop the lead reappearing in a future Find Leads run — for that, use **🚫 Unsubscribe this lead** from the lead's Details panel instead.

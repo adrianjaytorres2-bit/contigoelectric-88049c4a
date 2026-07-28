@@ -70,6 +70,35 @@ export async function sendEmail(t, { to, subject, body, inReplyTo, html }) {
   return info.messageId;
 }
 
+// Server/connection-level failures that affect EVERY send, not one lead —
+// retrying the rest of the batch just hammers the server and can trigger
+// IP-based rate limiting, so callers should abort the whole run.
+export function isConnectionError(message = "") {
+  return /535|invalid login|authentication|EAUTH|421|ECONNECTION|ENOTFOUND|ETIMEDOUT/i.test(message);
+}
+
+// Per-recipient rejections. Split deliberately into two levels:
+//
+//  - isHardBounce: the send was refused for this recipient. Safe to stop
+//    follow-ups over, but NOT safe to permanently suppress on, because a bare
+//    550 is also what many servers return for spam-filter blocks and
+//    greylisting — a real, reachable prospect can produce one.
+//  - isUnknownMailbox: the server explicitly said the mailbox doesn't exist.
+//    Unambiguous, so it's safe to permanently suppress the address.
+export function isHardBounce(message = "") {
+  // Auth failures carry 5.x.x codes too ("535 5.7.8 Authentication ...").
+  // Exclude them explicitly so this predicate is correct on its own rather
+  // than only when callers happen to test isConnectionError first.
+  if (isConnectionError(message)) return false;
+  return /\b(550|551|552|553|554)\b|5\.[157]\.\d|rejected|blocked|denied|undeliverable|unavailable/i.test(message);
+}
+
+export function isUnknownMailbox(message = "") {
+  return /5\.1\.[123]|user unknown|no such user|no such recipient|does not exist|doesn'?t exist|unknown recipient|invalid recipient|recipient not found|mailbox not found|address rejected/i.test(
+    message
+  );
+}
+
 export function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }

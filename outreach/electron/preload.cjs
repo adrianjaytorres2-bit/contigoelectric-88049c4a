@@ -21,6 +21,8 @@ contextBridge.exposeInMainWorld("outreach", {
   unsuppressLead: (email) => ipcRenderer.invoke("lead:unsuppress", email),
   bulkDelete: (emails) => ipcRenderer.invoke("lead:bulkDelete", emails),
   deleteLead: (params) => ipcRenderer.invoke("lead:delete", params),
+  noFollowup: (params) => ipcRenderer.invoke("lead:noFollowup", params),
+  resumeFollowup: (key) => ipcRenderer.invoke("lead:resumeFollowup", key),
   verifyLeads: (params) => ipcRenderer.invoke("leads:verify", params),
   exportLeads: (params) => ipcRenderer.invoke("leads:exportDialog", params),
   fbGenerateDrafts: (params) => ipcRenderer.invoke("fb:generateDrafts", params),

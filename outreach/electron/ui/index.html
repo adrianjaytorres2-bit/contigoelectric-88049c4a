@@ -57,7 +57,7 @@
         <span id="dot-smtp" class="dot" title="SMTP (sending)"></span>
         <span id="dot-imap" class="dot" title="IMAP (replies)"></span>
       </div>
-      <span class="version">v3.2.109 · local &amp; private</span>
+      <span class="version">v3.2.110 · local &amp; private</span>
       <button id="btn-check-updates" class="btn tiny">🔄 Check for updates</button>
       <span id="update-status" class="update-status"></span>
       <button id="update-banner" class="btn tiny primary hidden">⬇️ Update ready — restart</button>
@@ -303,7 +303,10 @@
           <label class="full">Notes<textarea name="notes" rows="4" placeholder="Called, left voicemail. Try again Thursday…"></textarea></label>
           <label class="full">Tags (comma-separated)<input name="tags" placeholder="hot-lead, called, referral" /></label>
           <div class="modal-actions" style="justify-content:space-between;">
-            <button type="button" class="btn tiny danger" id="btn-suppress-lead">🚫 Unsubscribe this lead</button>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button type="button" class="btn tiny" id="btn-toggle-followups">⏸️ Stop follow-ups</button>
+              <button type="button" class="btn tiny danger" id="btn-suppress-lead">🚫 Unsubscribe this lead</button>
+            </div>
             <div style="display:flex;gap:10px;">
               <button type="button" class="btn" data-close-modal>Close</button>
               <button type="submit" class="btn primary">💾 Save</button>
@@ -425,6 +428,14 @@
       <div class="guide-card">
         <h2>Adding something you found after drafting</h2>
         <p>Found something extra after the email was already written — a bad review, a news mention, anything relevant? Below the redraft box on the <b>Emails</b> page is a second one: <b>"Found something else? Paste it and add it to this email."</b> Paste in whatever you found, hit <b>✨ Summarize &amp; add to draft</b>, and the AI turns it into one natural sentence and weaves it into the existing email — everything else stays as it was, it's a small targeted edit, not a full rewrite.</p>
+      </div>
+
+      <div class="guide-card">
+        <h2>Follow-ups &amp; bounce protection</h2>
+        <p>Before every single follow-up, the address is <b>re-verified</b>. The original email may have gone out weeks ago, and domains expire and mailboxes get shut off in the meantime — sending a nudge to an address the app can already tell is dead is a second avoidable bounce against a sender reputation you're still building. Anything that fails is dropped from the sequence automatically instead of being retried.</p>
+        <p>If a send actually bounces, that lead's follow-ups <b>stop immediately</b> — on the first send too, not just on follow-ups. When the server explicitly says the mailbox doesn't exist, the address is also permanently suppressed. When it's a vaguer rejection (spam filter block, mailbox full), follow-ups still stop but the address is <b>kept</b>, since those can happen to perfectly real prospects and silently burning one would be worse.</p>
+        <p>To remove a lead by hand, open its <b>🔍 Details</b> on the Leads page and hit <b>⏸️ Stop follow-ups</b>. The lead stays in your list with its full history — it just stops getting nudges. The same button turns into <b>▶️ Resume follow-ups</b> to undo it, and paused leads show a <span class="badge skipped">⏸️ no follow-ups</span> badge in the table.</p>
+        <p class="note">💡 This is different from <b>🚫 Unsubscribe</b>, which blocks the address from <i>all</i> email permanently and can't be re-found by Find Leads. Stopping follow-ups is narrower and fully reversible.</p>
       </div>
 
       <div class="guide-card">

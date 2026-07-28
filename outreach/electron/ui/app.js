@@ -228,6 +228,10 @@ function renderLeads() {
             : l.emailVerified?.status === "valid"
             ? `<br><span class="badge sent" title="${esc(l.emailVerified.reason || "")}">✓ verified</span>`
             : ""
+        }${
+          l.followupsPaused
+            ? `<br><span class="badge skipped" title="${esc(l.followupsPausedReason || "")}">⏸️ no follow-ups</span>`
+            : ""
         }</td>
       <td>${l.score ?? "—"}</td>
       <td><small>${esc(l.skipReason || (l.flaws || []).slice(0, 2).join("; ") || (l.reply?.summary ?? ""))}</small></td>
@@ -332,6 +336,7 @@ function openLeadDetail(email) {
     lead.facebookUrl ? ["Facebook", lead.facebookUrl] : null,
     lead.sentAt ? ["Sent", new Date(lead.sentAt).toLocaleString()] : null,
     lead.followupCount ? ["Follow-ups sent", lead.followupCount] : null,
+    lead.followupsPaused ? ["Follow-ups", `⏸️ stopped — ${lead.followupsPausedReason || "manually excluded"}`] : null,
     lead.reply ? ["Reply", `${lead.reply.intent} — ${lead.reply.summary || ""}`] : null,
   ].filter(Boolean);
   $("#ld-info").innerHTML = rows
@@ -349,8 +354,29 @@ function openLeadDetail(email) {
     btn.classList.toggle("hidden", !canSend);
     btn.dataset.email = email;
   }
+
+  // follow-up toggle reflects current state
+  const fuBtn = $("#btn-toggle-followups");
+  fuBtn.dataset.key = lead.id || email;
+  fuBtn.dataset.paused = lead.followupsPaused ? "1" : "";
+  fuBtn.textContent = lead.followupsPaused ? "▶️ Resume follow-ups" : "⏸️ Stop follow-ups";
+
   openModal("modal-lead-detail");
 }
+
+$("#btn-toggle-followups").addEventListener("click", async () => {
+  const btn = $("#btn-toggle-followups");
+  const key = btn.dataset.key;
+  const paused = !!btn.dataset.paused;
+  $("#modal-lead-detail").classList.add("hidden");
+  if (paused) {
+    await runAction("Resuming follow-ups…", () => window.outreach.resumeFollowup(key));
+  } else {
+    await runAction("Stopping follow-ups…", () =>
+      window.outreach.noFollowup({ key, reason: "manually excluded" })
+    );
+  }
+});
 
 $("#btn-send-one").addEventListener("click", async () => {
   const email = $("#btn-send-one").dataset.email;

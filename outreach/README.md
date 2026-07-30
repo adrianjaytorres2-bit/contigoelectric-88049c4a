@@ -51,6 +51,20 @@ node src/cli.js setflaws jane@example.com --text "no HTTPS padlock; checkout bro
 node src/cli.js redraft jane@example.com
 ```
 
+## Send Queue — review before anything goes out
+
+The **Send Queue** page shows exactly what the next Send will do, numbered in send order, with each email's full subject and body, its address verification badge, quality score, and a link to the site. Per card: verify that one address, hold it out of the batch without deleting, redraft it with your own notes, or delete the lead. Held leads get their own section with a release button, and **Verify all addresses** re-checks the whole queue before a big send.
+
+The preview shares its batch-selection code with the real send command, so it can't drift from what actually goes out.
+
+```sh
+node src/cli.js queue                    # preview the next batch, in order
+node src/cli.js queue --json             # machine-readable (used by the app)
+node src/cli.js hold jane@example.com --reason "subject is weak"
+node src/cli.js unhold jane@example.com
+node src/cli.js verifyleads --emails jane@example.com
+```
+
 ## Website Build Assist
 
 The **Site Builder** page turns a won job into a build prompt for Lovable or Base44. Enter the company name and what they do, then pick from 15 options each for website type, layout style, color scheme, and goals (all with free-text alternatives). Goals are multi-select and the first pick becomes the primary goal.

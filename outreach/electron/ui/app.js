@@ -8,6 +8,9 @@ function showView(name) {
   $(`#view-${name}`).classList.add("active");
   $(`.nav-btn[data-view="${name}"]`).classList.add("active");
   if (name !== "settings") refresh();
+  // The queue fetches its own payload from the engine rather than riding on
+  // readState, so it needs an explicit load when the view opens.
+  if (name === "queue") renderQueue();
 }
 $$(".nav-btn").forEach((b) => b.addEventListener("click", () => showView(b.dataset.view)));
 document.addEventListener("click", (e) => {
@@ -885,6 +888,176 @@ function applyTheme(theme) {
 }
 // Live preview: recolor instantly as the user browses the dropdown.
 $("#theme-select").addEventListener("change", (e) => applyTheme(e.target.value));
+
+// ---------- send queue ----------
+// The queue comes from the engine's `queue --json`, which shares
+// store.nextSendBatch with the real send command — so what's shown here is
+// provably what would go out, not a re-derived guess.
+let queueData = null;
+
+async function renderQueue() {
+  const res = await window.outreach.getQueue();
+  if (!res || !res.ok) {
+    $("#queue-stats").innerHTML = "";
+    $("#queue-note").textContent = "";
+    $("#queue-list").innerHTML = `<div class="empty">${esc(res?.error || "Couldn't load the send queue.")}</div>`;
+    $("#queue-extras").innerHTML = "";
+    return;
+  }
+  const q = (queueData = res.queue);
+
+  const risky = q.batch.filter((l) => l.emailVerified?.status === "invalid" || l.emailVerified?.status === "risky").length;
+  const unverified = q.batch.filter((l) => !l.emailVerified).length;
+  $("#queue-stats").innerHTML = [
+    ["Sending next", q.batch.length],
+    ["Today's cap", `${q.sentToday} / ${q.cap}${q.warmupActive ? " 🌱" : ""}`],
+    ["Waiting for tomorrow", q.queuedBeyondBudget.length],
+    ["On hold", q.heldBack.length],
+    ["Flagged addresses", risky],
+    ["Unverified", unverified],
+  ]
+    .map(([label, n]) => `<div class="stat"><b>${n}</b><span>${label}</span></div>`)
+    .join("");
+
+  $("#queue-note").innerHTML = q.batch.length
+    ? `These ${q.batch.length} go out in this order on the next Send.${
+        unverified ? ` <b>${unverified} haven't been address-checked yet</b> — hit “Verify all addresses” to catch bounces before they happen.` : ""
+      }`
+    : "Nothing is queued to send right now.";
+
+  const card = (l, held) => `<div class="q-card${held ? " held" : ""}" data-id="${esc(l.id)}" data-email="${esc(l.email)}">
+      <div class="q-head">
+        <span class="q-pos">${held ? "⏸" : l.position}</span>
+        <div class="q-who">
+          <b>${esc(l.company || l.name || l.email)}</b>
+          <span>${esc(l.email)}${l.name && l.company ? ` · ${esc(l.name)}` : ""}</span>
+        </div>
+        <div class="q-badges">
+          ${
+            l.emailVerified?.status === "invalid"
+              ? `<span class="badge skipped" title="${esc(l.emailVerified.reason || "")}">⚠ bounce risk</span>`
+              : l.emailVerified?.status === "risky"
+              ? `<span class="badge maybe_later" title="${esc(l.emailVerified.reason || "")}">⚠ risky</span>`
+              : l.emailVerified?.status === "valid"
+              ? `<span class="badge sent">✓ verified</span>`
+              : `<span class="badge">? unverified</span>`
+          }
+          ${l.score != null ? `<span class="badge">score ${l.score}</span>` : ""}
+          ${l.edited ? `<span class="badge drafted">edited</span>` : ""}
+          ${l.website ? `<a href="${esc(l.website)}" target="_blank" class="btn tiny">🌐 Site</a>` : ""}
+        </div>
+      </div>
+      ${held && l.sendHoldReason ? `<p class="hint" style="margin:6px 0 0;">On hold — ${esc(l.sendHoldReason)}</p>` : ""}
+      <div class="q-subject">${esc(l.subject)}</div>
+      <pre class="q-body">${esc(l.body)}</pre>
+      <div class="q-actions">
+        ${
+          held
+            ? `<button class="btn tiny primary q-unhold">▶️ Release into queue</button>`
+            : `<button class="btn tiny q-hold">⏸️ Hold this one</button>`
+        }
+        <button class="btn tiny q-verify">✅ Verify address</button>
+        <button class="btn tiny q-redraft-toggle">✍️ Redraft with notes</button>
+        <button class="btn tiny danger q-delete">🗑️ Delete lead</button>
+        <span class="q-status"></span>
+      </div>
+      <div class="q-redraft hidden">
+        <label class="field-label">What should the AI focus on instead?</label>
+        <textarea class="q-flaws" rows="2" placeholder="e.g. no HTTPS padlock; checkout broken on mobile — ignore the copyright year">${esc(l.manualFlaws)}</textarea>
+        <div class="q-actions">
+          <button class="btn tiny primary q-redraft-go">🔄 Redraft now</button>
+        </div>
+      </div>
+    </div>`;
+
+  $("#queue-list").innerHTML =
+    q.batch.map((l) => card(l, false)).join("") ||
+    `<div class="empty">Nothing queued. Draft some emails on the Dashboard first.</div>`;
+
+  const extras = [];
+  if (q.heldBack.length)
+    extras.push(
+      `<h3 class="fb-section-title">On hold (${q.heldBack.length}) — excluded until you release them</h3>` +
+        q.heldBack.map((l) => card(l, true)).join("")
+    );
+  if (q.queuedBeyondBudget.length)
+    extras.push(
+      `<h3 class="fb-section-title">Waiting for tomorrow's cap (${q.queuedBeyondBudget.length})</h3>` +
+        q.queuedBeyondBudget.map((l) => card(l, false)).join("")
+    );
+  if (q.noEmailCount || q.suppressedCount)
+    extras.push(
+      `<p class="hint">Also excluded: ${q.noEmailCount} drafted lead(s) with no email address, ${q.suppressedCount} unsubscribed.</p>`
+    );
+  $("#queue-extras").innerHTML = extras.join("");
+
+  wireQueueCards();
+}
+
+function wireQueueCards() {
+  const flash = (card, msg, ms = 2200) => {
+    const el = card.querySelector(".q-status");
+    el.textContent = msg;
+    if (ms) setTimeout(() => (el.textContent = ""), ms);
+  };
+
+  $$("#view-queue .q-hold").forEach((b) =>
+    b.addEventListener("click", () => {
+      const card = b.closest(".q-card");
+      runAction(`Holding ${card.dataset.email}…`, () =>
+        window.outreach.holdLead({ key: card.dataset.id, reason: "held for review" })
+      ).then(renderQueue);
+    })
+  );
+  $$("#view-queue .q-unhold").forEach((b) =>
+    b.addEventListener("click", () => {
+      const card = b.closest(".q-card");
+      runAction(`Releasing ${card.dataset.email}…`, () => window.outreach.unholdLead(card.dataset.id)).then(renderQueue);
+    })
+  );
+  $$("#view-queue .q-verify").forEach((b) =>
+    b.addEventListener("click", async () => {
+      const card = b.closest(".q-card");
+      b.disabled = true;
+      flash(card, "Checking…", 0);
+      await window.outreach.verifyLeads({ emails: [card.dataset.email] });
+      b.disabled = false;
+      renderQueue();
+    })
+  );
+  $$("#view-queue .q-redraft-toggle").forEach((b) =>
+    b.addEventListener("click", () => {
+      b.closest(".q-card").querySelector(".q-redraft").classList.toggle("hidden");
+    })
+  );
+  $$("#view-queue .q-redraft-go").forEach((b) =>
+    b.addEventListener("click", async () => {
+      const card = b.closest(".q-card");
+      const text = card.querySelector(".q-flaws").value.trim();
+      b.disabled = true;
+      flash(card, "Saving notes…", 0);
+      await window.outreach.setFlaws({ email: card.dataset.email, text });
+      flash(card, "Redrafting…", 0);
+      await window.outreach.redraftLead(card.dataset.email);
+      b.disabled = false;
+      renderQueue();
+    })
+  );
+  $$("#view-queue .q-delete").forEach((b) =>
+    b.addEventListener("click", () => {
+      const card = b.closest(".q-card");
+      if (!confirm(`Delete ${card.dataset.email} and its draft? This can't be undone.`)) return;
+      runAction(`Deleting ${card.dataset.email}…`, () =>
+        window.outreach.deleteLead({ key: card.dataset.id })
+      ).then(renderQueue);
+    })
+  );
+}
+
+$("#btn-queue-refresh").addEventListener("click", renderQueue);
+$("#btn-queue-verify").addEventListener("click", () => {
+  runAction("Verifying every queued address…", () => window.outreach.verifyLeads({ all: true })).then(renderQueue);
+});
 
 // ---------- site builder ----------
 // Pure local prompt assembly (see sitebuilder.js) — no AI call, no network.

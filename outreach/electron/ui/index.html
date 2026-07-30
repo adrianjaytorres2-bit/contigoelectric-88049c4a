@@ -33,6 +33,10 @@
         <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4-8 5-8-5V6l8 5 8-5z"/></svg>
         Emails
       </button>
+      <button class="nav-btn" data-view="queue">
+        <svg viewBox="0 0 24 24"><path d="M3 5h18v2H3V5zm0 6h12v2H3v-2zm0 6h12v2H3v-2zm15.5-6L22 14.5 18.5 18v-2.5H16v-2h2.5V11z"/></svg>
+        Send Queue
+      </button>
       <button class="nav-btn" data-view="analytics">
         <svg viewBox="0 0 24 24"><path d="M5 9.2h3V19H5zm5.6-4.2h2.8v14h-2.8zm5.6 7H19V19h-2.8z"/></svg>
         Analytics
@@ -61,7 +65,7 @@
         <span id="dot-smtp" class="dot" title="SMTP (sending)"></span>
         <span id="dot-imap" class="dot" title="IMAP (replies)"></span>
       </div>
-      <span class="version">v3.3.0 · local &amp; private</span>
+      <span class="version">v3.4.0 · local &amp; private</span>
       <button id="btn-check-updates" class="btn tiny">🔄 Check for updates</button>
       <span id="update-status" class="update-status"></span>
       <button id="update-banner" class="btn tiny primary hidden">⬇️ Update ready — restart</button>
@@ -503,6 +507,13 @@
       </div>
 
       <div class="guide-card">
+        <h2>Send Queue — review before anything goes out</h2>
+        <p>The <b>Send Queue</b> page shows exactly what the next <b>Send</b> will do, numbered in the order it'll happen. Each card has the full subject and body to read, the address with its verification badge, the quality score, and a link to open their site. Stats up top show how many are going out, how much of today's cap is left, how many are waiting for tomorrow, and how many addresses are flagged or still unchecked.</p>
+        <p>Per card you can: <b>✅ Verify address</b> (checks just that one), <b>⏸️ Hold this one</b> to pull it from the batch without deleting it, <b>✍️ Redraft with notes</b> to tell the AI what to focus on and rewrite it on the spot, or <b>🗑️ Delete lead</b>. Held leads move to their own section with a <b>▶️ Release into queue</b> button. <b>✅ Verify all addresses</b> at the top re-checks the whole queue at once — worth doing before a big send.</p>
+        <p class="note">💡 This preview can't drift from reality: it and the actual send command share the same batch-selection code, so the order and contents shown are what will genuinely be sent. The Dashboard's <b>🧪 Dry run</b> remains a second way to confirm.</p>
+      </div>
+
+      <div class="guide-card">
         <h2>Website Build Assist</h2>
         <p>Once a lead says yes, the <b>Site Builder</b> page turns the job into a build prompt for Lovable or Base44. Enter the company name and what they actually do, then pick from 15 options each for <b>website type</b>, <b>layout style</b>, <b>color scheme</b>, and <b>goals</b> — every category also has a free-text box if none of them fit. Goals are multi-select and <b>the first one you click becomes the primary goal</b>, which is what the generated prompt tells the builder to optimize for.</p>
         <p>The output is fully editable before you copy it, and you can save it as a Markdown file to keep with the project. <b>🎲 Surprise me</b> randomizes just the style picks (your typed details stay put) when you want a starting point.</p>
@@ -611,6 +622,25 @@
         <input id="email-search" class="search" type="text" placeholder="🔎 Search name, company, email, subject, body…" />
       </div>
       <div id="emails-list"></div>
+    </section>
+
+    <!-- SEND QUEUE -->
+    <section id="view-queue" class="view">
+      <header class="view-header row">
+        <div>
+          <h1>Send Queue</h1>
+          <p>Exactly what the next <b>Send</b> will do, in order. Read each one, verify the address, hold anything you're not happy with, or send a redraft note — before it goes out.</p>
+        </div>
+        <div class="btn-group">
+          <button class="btn" id="btn-queue-verify">✅ Verify all addresses</button>
+          <button class="btn" id="btn-queue-refresh">🔄 Refresh</button>
+        </div>
+      </header>
+      <div class="stat-row" id="queue-stats"></div>
+      <p class="hint" id="queue-note"></p>
+      <div id="queue-list"></div>
+
+      <div id="queue-extras"></div>
     </section>
 
     <!-- ANALYTICS -->

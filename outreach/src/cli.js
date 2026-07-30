@@ -377,22 +377,21 @@ async function main() {
       const dryRun = args.includes("--dry-run");
       const drafted = store.leadsByStatus(db, STATUS.DRAFTED);
       if (!drafted.length) return console.log("Nothing to send. Run `draft` first.");
-      const suppressedCount = drafted.filter((l) => store.isSuppressed(db, l.email)).length;
-      const sendable = drafted.filter((l) => l.email && !store.isSuppressed(db, l.email));
-      const missing = drafted.length - sendable.length - suppressedCount;
-      if (missing)
-        console.log(
-          `${missing} drafted lead(s) have no email address — skipping them. Add an email to those leads to reach them.`
-        );
-      if (suppressedCount) console.log(`${suppressedCount} drafted lead(s) are unsubscribed — skipping them.`);
-      if (!sendable.length) return console.log("No drafted leads have an email address to send to.");
       const cap = effectiveDailyCap(config);
-      const budget = cap - sentToday(db);
-      if (budget <= 0)
+      const q = store.nextSendBatch(db, { cap, alreadySentToday: sentToday(db) });
+      if (q.noEmail.length)
+        console.log(
+          `${q.noEmail.length} drafted lead(s) have no email address — skipping them. Add an email to those leads to reach them.`
+        );
+      if (q.suppressed.length) console.log(`${q.suppressed.length} drafted lead(s) are unsubscribed — skipping them.`);
+      if (q.heldBack.length)
+        console.log(`${q.heldBack.length} drafted lead(s) are on hold in the Send Queue — skipping them.`);
+      if (q.budget <= 0)
         return console.log(
           `Daily send cap reached (${cap}${config.warmupEnabled ? ", warmup-limited" : ""}). Try again tomorrow.`
         );
-      const batch = sendable.slice(0, budget);
+      if (!q.batch.length) return console.log("No drafted leads are ready to send.");
+      const batch = q.batch;
       const t = dryRun ? null : transport();
       for (const lead of batch) {
         if (dryRun) {
@@ -577,6 +576,89 @@ async function main() {
             store.save(db);
           }
         }
+      }
+      break;
+    }
+
+    case "queue": {
+      // Preview exactly what the next `send` run would do, in order. --json
+      // emits a machine-readable payload for the app's Send Queue view; both
+      // paths go through store.nextSendBatch so the preview and the real send
+      // can't disagree.
+      const cap = effectiveDailyCap(config);
+      const q = store.nextSendBatch(db, { cap, alreadySentToday: sentToday(db) });
+      const slim = (l, i) => ({
+        position: i + 1,
+        id: l.id,
+        name: l.name || "",
+        company: l.company || "",
+        email: l.email || "",
+        website: l.website || "",
+        score: l.draft?.quality_score ?? null,
+        flaws: l.draft?.flaws || [],
+        subject: l.draft?.subject || "",
+        body: l.draft?.body || "",
+        emailVerified: l.emailVerified || null,
+        manualFlaws: l.manualFlaws || "",
+        edited: !!l.edited,
+        sendHold: !!l.sendHold,
+        sendHoldReason: l.sendHoldReason || null,
+      });
+      if (args.includes("--json")) {
+        console.log(
+          JSON.stringify({
+            cap,
+            sentToday: sentToday(db),
+            budget: q.budget,
+            warmupActive: !!config.warmupEnabled,
+            batch: q.batch.map(slim),
+            queuedBeyondBudget: q.queuedBeyondBudget.map(slim),
+            heldBack: q.heldBack.map(slim),
+            noEmailCount: q.noEmail.length,
+            suppressedCount: q.suppressed.length,
+          })
+        );
+        break;
+      }
+      console.log(
+        `Today's cap: ${cap}${config.warmupEnabled ? " (warmup)" : ""} · already sent: ${sentToday(db)} · room for ${q.budget} more.`
+      );
+      if (!q.batch.length) console.log("Nothing would send right now.");
+      for (const [i, l] of q.batch.entries()) {
+        const v = l.emailVerified?.status;
+        const mark = v === "invalid" ? "⚠ BOUNCE RISK" : v === "risky" ? "⚠ risky" : v === "valid" ? "✓" : "? unverified";
+        console.log(`${String(i + 1).padStart(3)}. ${mark}  ${l.email}  — "${l.draft?.subject || ""}"`);
+      }
+      if (q.queuedBeyondBudget.length)
+        console.log(`\n${q.queuedBeyondBudget.length} more are drafted and waiting for tomorrow's cap.`);
+      if (q.heldBack.length) console.log(`${q.heldBack.length} on hold (excluded until you release them).`);
+      break;
+    }
+
+    case "hold":
+    case "unhold": {
+      // Keep a drafted lead out of the next send batch without deleting it or
+      // unsubscribing it — for reviewing the queue and pulling one you're not
+      // happy with yet.
+      const key = args[0];
+      if (!key || key.startsWith("--")) die(`usage: outreach ${cmd} <email|leadId> [--reason "..."]`);
+      const entry = db.leads[key]
+        ? [key, db.leads[key]]
+        : Object.entries(db.leads).find(([, l]) => l.email && l.email === key);
+      if (!entry) die(`No lead found: ${key}`);
+      const [, lead] = entry;
+      const label = lead.company || lead.name || lead.email || key;
+      if (cmd === "hold") {
+        const reason = flag(args, "--reason");
+        lead.sendHold = true;
+        lead.sendHoldReason = typeof reason === "string" && reason ? reason : "held for review";
+        store.save(db);
+        console.log(`${label} is on hold and won't be sent (${lead.sendHoldReason}).`);
+      } else {
+        lead.sendHold = false;
+        lead.sendHoldReason = null;
+        store.save(db);
+        console.log(`${label} is released back into the send queue.`);
       }
       break;
     }
@@ -781,11 +863,17 @@ async function main() {
     case "verifyleads": {
       // Re-check email addresses on existing leads without touching drafts —
       // useful before a big send, or to check leads imported before this
-      // feature existed. outreach verifyleads [--limit N] [--all]
+      // feature existed.
+      //   outreach verifyleads [--limit N] [--all] [--emails a@b.com,c@d.com]
       const limit = Number(flag(args, "--limit") || Infinity);
       const all = args.includes("--all");
+      const only = flag(args, "--emails");
+      const wanted =
+        typeof only === "string" && only
+          ? new Set(only.split(",").map((e) => e.trim().toLowerCase()).filter(Boolean))
+          : null;
       const targets = Object.values(db.leads)
-        .filter((l) => l.email && (all || !l.emailVerified))
+        .filter((l) => l.email && (wanted ? wanted.has(l.email.toLowerCase()) : all || !l.emailVerified))
         .slice(0, limit);
       if (!targets.length) return console.log("No leads need checking (use --all to re-check everyone).");
       let valid = 0, risky = 0, invalid = 0;
@@ -1006,6 +1094,9 @@ Usage:
   outreach addfinding <email> --text "..."   Summarize something found after drafting and weave it into the existing email
   outreach preview [email]         Show drafted emails before sending
   outreach override [email]        Re-queue skipped leads (that have a draft) so they send anyway
+  outreach queue [--json]          Preview exactly what the next send would do, in order
+  outreach hold <email|leadId> [--reason "..."]   Keep one lead out of the next send batch
+  outreach unhold <email|leadId>   Release it back into the queue
   outreach send [--dry-run]        Send drafted emails via SMTP (throttled, daily cap)
   outreach sendone <email|leadId>  Send one specific lead's drafted email immediately (ignores daily cap)
   outreach followup [--dry-run]    Send due follow-ups to non-repliers (re-verifies each address first;

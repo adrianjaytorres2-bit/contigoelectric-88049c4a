@@ -231,7 +231,10 @@ function armAllSchedules() {
 
 let running = null;
 
-function runEngine(args, { nodeScript } = {}) {
+// quiet: capture output without streaming it to the Activity log — for
+// commands whose stdout is a machine-readable payload (e.g. `queue --json`)
+// rather than something a human wants to read.
+function runEngine(args, { nodeScript, quiet } = {}) {
   return new Promise((resolve) => {
     if (running) return resolve({ ok: false, output: "Another task is already running." });
     const s = loadSettings();
@@ -245,7 +248,7 @@ function runEngine(args, { nodeScript } = {}) {
     let output = "";
     const emit = (chunk) => {
       output += chunk;
-      if (win && !win.isDestroyed()) win.webContents.send("engine:log", chunk.toString());
+      if (!quiet && win && !win.isDestroyed()) win.webContents.send("engine:log", chunk.toString());
     };
     child.stdout.on("data", emit);
     child.stderr.on("data", emit);
@@ -468,6 +471,27 @@ ipcMain.handle("lead:suppress", (_e, { email, reason }) =>
 );
 ipcMain.handle("lead:unsuppress", (_e, email) => runEngine(["unsuppress", email]));
 ipcMain.handle("lead:bulkDelete", (_e, emails) => runEngine(["bulkdelete", "--emails", emails.join(",")]));
+ipcMain.handle("queue:get", async () => {
+  const res = await runEngine(["queue", "--json"], { quiet: true });
+  if (!res.ok) return { ok: false, error: res.output.trim() || "Couldn't read the send queue." };
+  try {
+    // The engine may print incidental lines before the payload; take the last
+    // line that parses as our object rather than assuming stdout is pure JSON.
+    const line = res.output
+      .split("\n")
+      .map((l) => l.trim())
+      .filter((l) => l.startsWith("{") && l.endsWith("}"))
+      .pop();
+    if (!line) throw new Error("no JSON payload in output");
+    return { ok: true, queue: JSON.parse(line) };
+  } catch (err) {
+    return { ok: false, error: `Couldn't parse the send queue: ${err.message}` };
+  }
+});
+ipcMain.handle("lead:hold", (_e, { key, reason } = {}) =>
+  runEngine(["hold", key, ...(reason ? ["--reason", reason] : [])])
+);
+ipcMain.handle("lead:unhold", (_e, key) => runEngine(["unhold", key]));
 ipcMain.handle("lead:noFollowup", (_e, { key, reason } = {}) =>
   runEngine(["nofollowup", key, ...(reason ? ["--reason", reason] : [])])
 );
@@ -475,10 +499,11 @@ ipcMain.handle("lead:resumeFollowup", (_e, key) => runEngine(["resumefollowup", 
 ipcMain.handle("lead:delete", (_e, { key, suppress } = {}) =>
   runEngine(["deletelead", key, ...(suppress ? ["--suppress"] : [])])
 );
-ipcMain.handle("leads:verify", (_e, { limit, all } = {}) => {
+ipcMain.handle("leads:verify", (_e, { limit, all, emails } = {}) => {
   const args = ["verifyleads"];
   if (limit) args.push("--limit", String(limit));
   if (all) args.push("--all");
+  if (emails && emails.length) args.push("--emails", emails.join(","));
   return runEngine(args);
 });
 

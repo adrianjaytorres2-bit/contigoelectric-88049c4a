@@ -70,6 +70,35 @@ export function leadsByStatus(db, status) {
   return Object.values(db.leads).filter((l) => l.status === status);
 }
 
+// The single source of truth for "what would the next `send` run actually
+// pick up, in what order". Used both by the send command itself and by the
+// Send Queue preview in the app, so the preview can never drift from
+// reality — a queue that lies about what's about to go out is worse than no
+// queue at all.
+//
+// Returns { batch, heldBack, noEmail, suppressed, budget } where batch is in
+// send order and everything else explains what was excluded and why.
+export function nextSendBatch(db, { cap, alreadySentToday }) {
+  const drafted = leadsByStatus(db, STATUS.DRAFTED);
+  const suppressed = drafted.filter((l) => isSuppressed(db, l.email));
+  const noEmail = drafted.filter((l) => !l.email);
+  const heldBack = drafted.filter(
+    (l) => l.sendHold && l.email && !isSuppressed(db, l.email)
+  );
+  const sendable = drafted.filter(
+    (l) => l.email && !isSuppressed(db, l.email) && !l.sendHold
+  );
+  const budget = Math.max(0, cap - alreadySentToday);
+  return {
+    batch: sendable.slice(0, budget),
+    queuedBeyondBudget: sendable.slice(budget),
+    heldBack,
+    noEmail,
+    suppressed,
+    budget,
+  };
+}
+
 // ---------- suppression (permanent do-not-email list) ----------
 // Separate from per-lead `status` — suppression survives re-imports, re-runs
 // findleads, and manual re-adds, so an unsubscribed address never gets

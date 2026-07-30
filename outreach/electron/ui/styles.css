@@ -376,6 +376,42 @@ td a { color: var(--blue); text-decoration: none; }
 }
 .empty { color: var(--muted); padding: 40px 0; text-align: center; }
 
+/* ---------- send queue ---------- */
+.q-card {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px 18px; margin-bottom: 12px;
+}
+.q-card.held { opacity: 0.72; border-style: dashed; }
+.q-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.q-pos {
+  flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%;
+  display: grid; place-items: center; font-size: 12.5px; font-weight: 800;
+  background: rgba(var(--accent-rgb), 0.14); color: var(--accent-2);
+}
+.q-who { flex: 1; min-width: 180px; display: flex; flex-direction: column; gap: 1px; }
+.q-who b { font-size: 14px; }
+.q-who span { font-size: 12px; color: var(--muted); }
+.q-badges { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.q-subject {
+  margin-top: 12px; font-weight: 700; color: var(--accent-2); font-size: 13.5px;
+}
+.q-body {
+  margin: 6px 0 0; padding: 12px 14px; background: var(--panel-2);
+  border: 1px solid var(--border); border-radius: 8px;
+  white-space: pre-wrap; word-break: break-word; font-family: inherit;
+  font-size: 13px; line-height: 1.6; max-height: 220px; overflow-y: auto;
+}
+.q-actions { display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.q-status { font-size: 12.5px; font-weight: 600; color: var(--accent-2); }
+.q-redraft { margin-top: 10px; padding-top: 12px; border-top: 1px dashed var(--border); }
+.q-redraft.hidden { display: none; }
+.q-flaws {
+  width: 100%; background: var(--panel-2); color: var(--text);
+  border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px;
+  font-size: 13px; line-height: 1.5; font-family: inherit; resize: vertical;
+}
+.q-flaws:focus { outline: none; border-color: var(--accent); }
+
 /* ---------- site builder ---------- */
 .sb-step { margin-bottom: 24px; }
 .sb-input {

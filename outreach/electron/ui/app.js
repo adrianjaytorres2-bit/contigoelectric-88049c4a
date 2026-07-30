@@ -886,6 +886,133 @@ function applyTheme(theme) {
 // Live preview: recolor instantly as the user browses the dropdown.
 $("#theme-select").addEventListener("change", (e) => applyTheme(e.target.value));
 
+// ---------- site builder ----------
+// Pure local prompt assembly (see sitebuilder.js) — no AI call, no network.
+const sbSel = { typeId: null, uiId: null, colorId: null, goalIds: [] };
+
+function sbRenderGrid(containerId, options, { multi = false } = {}) {
+  const el = $(`#${containerId}`);
+  el.innerHTML = options
+    .map(
+      (o) => `<button type="button" class="sb-opt" data-id="${esc(o.id)}">
+      <b>${esc(o.label)}</b>${o.detail ? `<span>${esc(o.detail)}</span>` : ""}
+      ${multi ? `<i class="sb-order"></i>` : ""}
+    </button>`
+    )
+    .join("");
+  $$(`#${containerId} .sb-opt`).forEach((btn) =>
+    btn.addEventListener("click", () => {
+      const id = btn.dataset.id;
+      if (multi) {
+        const i = sbSel.goalIds.indexOf(id);
+        if (i === -1) sbSel.goalIds.push(id);
+        else sbSel.goalIds.splice(i, 1);
+      } else {
+        const key = containerId === "sb-types" ? "typeId" : containerId === "sb-uis" ? "uiId" : "colorId";
+        sbSel[key] = sbSel[key] === id ? null : id;
+      }
+      sbSyncSelection(containerId, multi);
+    })
+  );
+}
+
+function sbSyncSelection(containerId, multi) {
+  $$(`#${containerId} .sb-opt`).forEach((btn) => {
+    const id = btn.dataset.id;
+    let on = false;
+    if (multi) {
+      const idx = sbSel.goalIds.indexOf(id);
+      on = idx !== -1;
+      const marker = btn.querySelector(".sb-order");
+      // Order matters for goals: first pick is the primary goal, so show rank.
+      if (marker) marker.textContent = on ? (idx === 0 ? "PRIMARY" : String(idx + 1)) : "";
+    } else {
+      const key = containerId === "sb-types" ? "typeId" : containerId === "sb-uis" ? "uiId" : "colorId";
+      on = sbSel[key] === id;
+    }
+    btn.classList.toggle("selected", on);
+  });
+}
+
+sbRenderGrid("sb-types", SITE_TYPES);
+sbRenderGrid("sb-uis", UI_STYLES);
+sbRenderGrid("sb-colors", COLOR_SCHEMES);
+sbRenderGrid("sb-goals", SITE_GOALS, { multi: true });
+
+function sbCollect() {
+  return {
+    ...sbSel,
+    companyName: $("#sb-company").value.trim(),
+    whatTheyDo: $("#sb-what").value.trim(),
+    typeCustom: $("#sb-type-custom").value.trim(),
+    uiCustom: $("#sb-ui-custom").value.trim(),
+    colorCustom: $("#sb-color-custom").value.trim(),
+    goalCustom: $("#sb-goal-custom").value.trim(),
+    mustHaves: $("#sb-must").value.trim(),
+  };
+}
+
+function sbFlash(msg, ms = 2500) {
+  $("#sb-status").textContent = msg;
+  if (ms) setTimeout(() => ($("#sb-status").textContent = ""), ms);
+}
+
+$("#btn-sb-generate").addEventListener("click", () => {
+  const sel = sbCollect();
+  if (!sel.companyName) return sbFlash("Add a company name first.");
+  if (!sel.whatTheyDo) return sbFlash("Describe what the business does — that's what makes the prompt specific.");
+  if (!sel.typeId && !sel.typeCustom) return sbFlash("Pick a website type (or describe one).");
+  $("#sb-output").value = buildSitePrompt(sel);
+  $("#sb-output-wrap").classList.remove("hidden");
+  $("#sb-output-wrap").scrollIntoView({ behavior: "smooth", block: "start" });
+  sbFlash("");
+});
+
+$("#btn-sb-copy").addEventListener("click", async () => {
+  // Grab the button up front: event.currentTarget is nulled once synchronous
+  // dispatch ends, so reading it after the await would throw.
+  const btn = $("#btn-sb-copy");
+  const prev = btn.textContent;
+  await navigator.clipboard.writeText($("#sb-output").value);
+  btn.textContent = "Copied ✓";
+  setTimeout(() => (btn.textContent = prev), 1600);
+});
+
+$("#btn-sb-save").addEventListener("click", () => {
+  const sel = sbCollect();
+  runAction("Saving build prompt…", () =>
+    window.outreach.savePrompt({
+      text: $("#sb-output").value,
+      suggestedName: `${(sel.companyName || "site").replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-build-prompt.md`,
+    })
+  );
+});
+
+$("#btn-sb-random").addEventListener("click", () => {
+  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)].id;
+  sbSel.typeId = pick(SITE_TYPES);
+  sbSel.uiId = pick(UI_STYLES);
+  sbSel.colorId = pick(COLOR_SCHEMES);
+  sbSel.goalIds = [pick(SITE_GOALS)];
+  sbSyncSelection("sb-types", false);
+  sbSyncSelection("sb-uis", false);
+  sbSyncSelection("sb-colors", false);
+  sbSyncSelection("sb-goals", true);
+  sbFlash("Randomized the style picks — your company details are untouched.");
+});
+
+$("#btn-sb-reset").addEventListener("click", () => {
+  sbSel.typeId = sbSel.uiId = sbSel.colorId = null;
+  sbSel.goalIds = [];
+  ["sb-company", "sb-what", "sb-type-custom", "sb-ui-custom", "sb-color-custom", "sb-goal-custom", "sb-must", "sb-output"].forEach(
+    (id) => ($(`#${id}`).value = "")
+  );
+  ["sb-types", "sb-uis", "sb-colors"].forEach((c) => sbSyncSelection(c, false));
+  sbSyncSelection("sb-goals", true);
+  $("#sb-output-wrap").classList.add("hidden");
+  sbFlash("Cleared.");
+});
+
 // ---------- settings ----------
 const form = $("#settings-form");
 

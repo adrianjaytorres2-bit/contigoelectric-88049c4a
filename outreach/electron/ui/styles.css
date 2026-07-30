@@ -376,6 +376,50 @@ td a { color: var(--blue); text-decoration: none; }
 }
 .empty { color: var(--muted); padding: 40px 0; text-align: center; }
 
+/* ---------- site builder ---------- */
+.sb-step { margin-bottom: 24px; }
+.sb-input {
+  width: 100%; background: var(--panel-2); color: var(--text);
+  border: 1px solid var(--border); border-radius: 8px; padding: 11px 13px;
+  font-size: 14px; font-family: inherit; line-height: 1.55; resize: vertical;
+}
+.sb-input:focus { outline: none; border-color: var(--accent); }
+.sb-custom { margin-top: 10px; font-size: 13px; }
+.sb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); gap: 9px; }
+.sb-opt {
+  position: relative; text-align: left; cursor: pointer;
+  background: var(--panel); color: var(--text);
+  border: 1px solid var(--border); border-radius: 9px; padding: 11px 13px;
+  display: flex; flex-direction: column; gap: 3px;
+  transition: border-color 0.12s, background 0.12s;
+}
+.sb-opt:hover { border-color: rgba(var(--accent-rgb), 0.5); }
+.sb-opt b { font-size: 13.5px; font-weight: 650; }
+.sb-opt span { font-size: 11.5px; color: var(--muted); line-height: 1.45; }
+.sb-opt.selected {
+  border-color: var(--accent); background: rgba(var(--accent-rgb), 0.1);
+}
+.sb-opt.selected b { color: var(--accent-2); }
+.sb-order {
+  position: absolute; top: 8px; right: 9px;
+  font-style: normal; font-size: 9.5px; font-weight: 800; letter-spacing: 0.5px;
+  color: var(--on-accent); background: var(--accent);
+  border-radius: 999px; padding: 1px 6px; line-height: 1.5;
+}
+.sb-order:empty { display: none; }
+.sb-actions { display: flex; align-items: center; gap: 12px; margin: 28px 0 20px; flex-wrap: wrap; }
+.sb-output-head {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 12px; margin-bottom: 8px; flex-wrap: wrap;
+}
+.sb-output {
+  width: 100%; background: #0a0e13; color: var(--text);
+  border: 1px solid var(--border); border-radius: var(--radius); padding: 16px;
+  font-family: "Cascadia Code", Consolas, monospace; font-size: 12.5px; line-height: 1.6;
+  resize: vertical;
+}
+.sb-output:focus { outline: none; border-color: var(--accent); }
+
 /* facebook DM queue */
 .fb-card {
   background: var(--panel); border: 1px solid var(--border);

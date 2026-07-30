@@ -25,6 +25,7 @@ contextBridge.exposeInMainWorld("outreach", {
   resumeFollowup: (key) => ipcRenderer.invoke("lead:resumeFollowup", key),
   verifyLeads: (params) => ipcRenderer.invoke("leads:verify", params),
   exportLeads: (params) => ipcRenderer.invoke("leads:exportDialog", params),
+  savePrompt: (params) => ipcRenderer.invoke("prompt:save", params),
   fbGenerateDrafts: (params) => ipcRenderer.invoke("fb:generateDrafts", params),
   fbMarkSent: (email) => ipcRenderer.invoke("fb:markSent", email),
   fbMarkSkipped: (email) => ipcRenderer.invoke("fb:markSkipped", email),

@@ -518,6 +518,28 @@ ipcMain.handle("schedule:cancel", (_e, id) => {
   return { ok: true };
 });
 
+// Save an arbitrary generated text file (the Site Builder's build prompt).
+// Writes directly rather than going through the engine CLI — there's no lead
+// data involved, it's just a file the user asked to keep.
+ipcMain.handle("prompt:save", async (_e, { text, suggestedName } = {}) => {
+  const { canceled, filePath } = await dialog.showSaveDialog(win, {
+    title: "Save build prompt",
+    defaultPath: suggestedName || "build-prompt.md",
+    filters: [
+      { name: "Markdown", extensions: ["md"] },
+      { name: "Text", extensions: ["txt"] },
+    ],
+  });
+  if (canceled || !filePath) return { ok: false, output: "Cancelled." };
+  try {
+    fs.writeFileSync(filePath, String(text ?? ""), "utf8");
+    await shell.showItemInFolder(filePath);
+    return { ok: true, output: `Saved to ${filePath}\n` };
+  } catch (err) {
+    return { ok: false, output: `Couldn't save: ${err.message}\n` };
+  }
+});
+
 ipcMain.handle("leads:exportDialog", async (_e, { status, emails } = {}) => {
   const { canceled, filePath } = await dialog.showSaveDialog(win, {
     title: "Export leads to CSV",

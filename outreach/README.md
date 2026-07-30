@@ -51,6 +51,14 @@ node src/cli.js setflaws jane@example.com --text "no HTTPS padlock; checkout bro
 node src/cli.js redraft jane@example.com
 ```
 
+## Website Build Assist
+
+The **Site Builder** page turns a won job into a build prompt for Lovable or Base44. Enter the company name and what they do, then pick from 15 options each for website type, layout style, color scheme, and goals (all with free-text alternatives). Goals are multi-select and the first pick becomes the primary goal.
+
+Every prompt gets an **anti-slop section** appended: a specific list of banned patterns (purple gradient heroes, glassmorphism, emoji icons, three identical feature cards, "Empower Your Business" headlines, fabricated testimonials/stats) plus positive requirements for typographic scale, real hierarchy, and designed mobile layouts. Naming exact failure modes works where "make it look good" doesn't. It also instructs the builder to use obvious placeholders like `[REAL PRICE NEEDED]` rather than inventing plausible detail.
+
+No AI credits are used — the prompt is assembled locally and instantly, since the receiving tool does the creative work.
+
 ## Follow-ups & bounce protection
 
 Every address is **re-verified right before its follow-up goes out** — the first email may have been sent weeks ago, and a nudge to an address that's since gone dead is a second avoidable bounce. Failing addresses are dropped from the sequence automatically.
